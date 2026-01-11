@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexFish Terminal</title>
+    <style>
+        body {
+            background-color: #0d0d0d;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #terminal-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap; /* Keeps formatting */
+            padding-bottom: 20px;
+        }
+        #input-line {
+            display: flex;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        #prompt {
+            color: #00ff00;
+            margin-right: 10px;
+        }
+        #cmd {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            flex-grow: 1;
+            outline: none;
+        }
+        /* Scrollbar styling for that hacker feel */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: #0d0d0d; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body>
+
+    <div id="terminal-output">
+        <div>ApexFish Tool v4.1 | Web Terminal Initialized...</div>
+        <div>Connected to Gigaverse Community Hub logic.</div>
+        <div>------------------------------------------------</div>
+        <div>Commands: 0-8 (Pos) | 'deck' (Set Cards) | 'reset'</div>
+        <div>------------------------------------------------</div>
+        <div style="color: yellow;">[!] SYSTEM: Please type 'deck' to set your cards first.</div>
+        <br>
+    </div>
+
+    <div id="input-line">
+        <span id="prompt">root@giga:~$</span>
+        <input type="text" id="cmd" autofocus autocomplete="off">
+    </div>
+
+<script>
+    // --- CONFIGURATION ---
+    // Set to false if you want "Unchained Mode" (No waiting)
+    const USE_CALIBRATION = false; 
+
+    // --- GAME LOGIC (Ported from Python) ---
+    class ApexFish {
+        constructor() {
+            this.adj = {
+                0: new Set([0, 1, 3]), 1: new Set([0, 1, 2, 4]), 2: new Set([1, 2, 5]),
+                3: new Set([0, 3, 4, 6]), 4: new Set([1, 3, 4, 5, 7]), 
+                5: new Set([2, 4, 5, 8]), 6: new Set([3, 6, 7]), 7: new Set([4, 6, 7, 8]), 8: new Set([5, 7, 8])
+            };
+            this.history = [];
+            this.deck = [];
+            
+            this.CROSS = new Set([1, 3, 4, 5, 7]);
+            this.CLUSTERS = {
+                0: new Set([0, 1, 3, 4]), 2: new Set([1, 2, 4, 5]),
+                6: new Set([3, 4, 6, 7]), 8: new Set([4, 5, 7, 8])
+            };
+            this.ROWS = {0: new Set([0, 1, 2]), 3: new Set([3, 4, 5]), 6: new Set([6, 7, 8])};
+        }
+
+        print(text, color = "#00ff00") {
+            const output = document.getElementById('terminal-output');
+            const line = document.createElement('div');
+            line.style.color = color;
+            line.textContent = text;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        printRaw(html) {
+            const output = document.getElementById('terminal-output');
+            const line = document.createElement('div');
+            line.innerHTML = html;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        setDeck(inputStr) {
+            this.deck = [];
+            const cards = inputStr.toLowerCase().split(' ');
+            cards.forEach(card => {
+                if (card.includes('2')) this.deck.push("2x2 CLUSTER");
+                else if (card.includes('3')) this.deck.push("3x1 HORIZONTAL");
+                else if (card.includes('c')) this.deck.push("CROSS SPELL");
+            });
+            this.print(`Deck Updated: [${this.deck.join(', ')}]`, "#00ffff");
+        }
+
+        // Helper for Set Intersection
+        intersect(setA, setB) {
+            return new Set([...setA].filter(x => setB.has(x)));
+        }
+
+        drawRadar(targetCells, possibleCells) {
+            let gridStr = "\n[ TARGETING OVERLAY ]\n";
+            for (let i = 0; i < 9; i++) {
+                let char = "[ ]";
+                if (targetCells.has(i) && possibleCells.has(i)) char = "[★]"; // Hit
+                else if (targetCells.has(i)) char = "[X]"; // Coverage
+                else if (possibleCells.has(i)) char = "[!]"; // Escape
+                
+                gridStr += char + " ";
+                if (i % 3 === 2) gridStr += "\n";
+            }
+            this.print(gridStr);
+        }
+
+        solve(pos) {
+            // Auto-Reset Logic
+            if (this.history.length > 0) {
+                const lastPos = this.history[this.history.length - 1];
+                if (!this.adj[lastPos].has(pos)) {
+                    this.print(`\n[!] MOVEMENT IMPOSSIBLE (${lastPos} -> ${pos})`, "orange");
+                    this.print("[!] DETECTED NEW FISH: Auto-Resetting History...", "orange");
+                    this.history = [];
+                }
+            }
+
+            this.history.push(pos);
+            if (this.history.length > 4) this.history.shift();
+
+            // Calibration Lock (From v4.1)
+            if (USE_CALIBRATION && this.history.length < 3) {
+                this.print(`\n--- CALIBRATING (${this.history.length}/3 Data Points) ---`, "yellow");
+                this.print(`FISH POSITION: ${pos}`, "yellow");
+                this.print("ADVICE: Wait... Gathering movement data.", "yellow");
+                return;
+            }
+
+            const possible = new Set(this.adj[pos]);
+            let volatility = "LOW";
+
+            // Anti-Backtrack Logic
+            if (this.history.length >= 2) {
+                const prevPos = this.history[this.history.length - 2];
+                if (possible.has(prevPos) && this.history.length > 2) {
+                    if (this.history[this.history.length - 1] !== this.history[this.history.length - 3]) {
+                        volatility = "HIGH";
+                    } else {
+                        volatility = "MODERATE";
+                    }
+                }
+            }
+
+            // Determine Ideal Spell
+            let spellName = "";
+            let spellTiles = new Set();
+
+            if (pos === 4) {
+                spellName = "CROSS SPELL";
+                spellTiles = this.CROSS;
+            } else if (this.CLUSTERS[pos]) {
+                spellName = "2x2 CLUSTER";
+                spellTiles = this.CLUSTERS[pos];
+            } else {
+                let rowStart = Math.floor(pos / 3) * 3;
+                spellName = "3x1 HORIZONTAL";
+                spellTiles = this.ROWS[rowStart];
+            }
+
+            // Confidence Calc
+            const hits = this.intersect(spellTiles, possible).size;
+            let baseConf = (hits / possible.size) * 100;
+            let finalConf = volatility === "LOW" ? baseConf : baseConf - 10;
+
+            // Deck Check
+            let recommendation = "PLAY";
+            if (this.deck.length > 0) {
+                if (!this.deck.includes(spellName)) {
+                    recommendation = "!!! REDRAW !!! (Missing Spell)";
+                } else {
+                    recommendation = `CAST ${spellName}`;
+                }
+            } else {
+                recommendation = `CAST ${spellName} (No Deck Set)`;
+            }
+
+            // Output
+            this.print(`\n--- APEX V4.1: POSITION ${pos} ---`);
+            this.print(`VOLATILITY:  ${volatility}`);
+            this.print(`CONFIDENCE:  ${finalConf.toFixed(1)}%`);
+            
+            let color = "#00ff00";
+            if (recommendation.includes("REDRAW")) color = "red";
+            this.print(`ACTION:      ${recommendation}`, color);
+            
+            this.drawRadar(spellTiles, possible);
+        }
+    }
+
+    // --- TERMINAL INTERFACE HANDLING ---
+    const bot = new ApexFish();
+    const input = document.getElementById('cmd');
+    let waitingForDeck = false;
+
+    input.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            const val = input.value.trim();
+            input.value = '';
+            
+            // Echo command
+            bot.print(`root@giga:~$ ${val}`, "#555");
+
+            if (waitingForDeck) {
+                bot.setDeck(val);
+                waitingForDeck = false;
+                return;
+            }
+
+            if (val.toLowerCase() === 'deck') {
+                bot.print("Enter your 3 cards (e.g., '2 2 c'):");
+                waitingForDeck = true;
+                return;
+            }
+
+            if (val.toLowerCase() === 'reset') {
+                bot.history = [];
+                bot.print("History Cleared.", "orange");
+                return;
+            }
+
+            if (val.toLowerCase() === 'exit') {
+                bot.print("Session Terminated.", "red");
+                return;
+            }
+
+            if (!isNaN(parseInt(val)) && parseInt(val) >= 0 && parseInt(val) <= 8) {
+                bot.solve(parseInt(val));
+            } else {
+                bot.print("Invalid Command. Enter 0-8, 'deck', or 'reset'", "red");
+            }
+        }
+    });
+
+    // Keep focus on input
+    document.addEventListener('click', () => input.focus());
+</script>
+</body>
+</html>
