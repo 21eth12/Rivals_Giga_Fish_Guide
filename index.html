@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giga Fish Terminal</title>
+    <title>ApexFish Terminal v5.4</title>
     <style>
         /* --- CORE TERMINAL STYLES --- */
         body {
@@ -210,7 +210,7 @@
     <div id="terminal-output">
         <div id="header-block">
             <div style="font-size: 16px; font-weight: 900; color: #00ff00; margin-bottom: 10px; letter-spacing: 1px;">
-                 GIGA FISH TOOL | Initializing..... lets Fishh 
+                GIGA FISH TOOL | Initializing..... lets Fishh
             </div>
             <div style="color: orange; font-weight: bold;">
                 [!] GIGAMIND: Input fish location (0-8)
@@ -275,13 +275,14 @@
             output.scrollTop = output.scrollHeight;
         }
         
-        // FIXED: Clear Screen now restores the ORANGE prompt
+        // --- FIXED CLEAR FUNCTION ---
+        // This now matches the text in the HTML Body above
         clearScreen() {
             const output = document.getElementById('terminal-output');
             output.innerHTML = `
             <div id="header-block">
                 <div style="font-size: 16px; font-weight: 900; color: #00ff00; margin-bottom: 10px; letter-spacing: 1px;">
-                    RIVAL'S GIGA FISH TOOL v5.3
+                    GIGA FISH TOOL | Initializing..... lets Fishh
                 </div>
                 <div style="color: orange; font-weight: bold;">
                     [!] GIGAMIND: Input fish location (0-8)
