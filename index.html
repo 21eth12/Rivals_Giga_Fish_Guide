@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexFish Terminal v4.5</title>
+    <title>ApexFish Terminal v4.6</title>
     <style>
         /* --- CORE TERMINAL STYLES --- */
         body {
@@ -44,34 +44,36 @@
             outline: none;
         } 
         
-        /* --- UI ELEMENTS (THE NEW STUFF) --- */
+        /* --- UI ELEMENTS --- */
         
-        /* 1. The Result Card (Wraps the text stats) */
+        /* 1. The Result Card */
         .result-card {
-            border: 1px solid #1a1a1a;
+            border: 1px solid #333;
             background: #0a0a0a;
-            border-left: 3px solid #00ff00; /* Green accent bar */
-            padding: 10px;
+            border-left: 4px solid #00ff00; /* Thicker green bar */
+            padding: 12px;
             margin-top: 10px;
             margin-bottom: 5px;
             width: fit-content;
             min-width: 280px;
         }
         
+        /* UPDATED: Brighter White Text */
         .result-header {
-            font-size: 11px;
-            color: #444;
-            border-bottom: 1px solid #222;
+            font-size: 12px;
+            color: #ffffff; /* Pure White */
+            font-weight: bold;
+            border-bottom: 1px solid #444;
             padding-bottom: 5px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .stat-grid {
             display: flex;
-            gap: 20px;
-            margin-bottom: 10px;
+            gap: 30px; /* More spacing */
+            margin-bottom: 12px;
         }
 
         .stat-item {
@@ -79,13 +81,15 @@
             flex-direction: column;
         }
         
+        /* UPDATED: Lighter Grey for Labels */
         .stat-label {
-            font-size: 10px;
-            color: #555;
+            font-size: 11px;
+            color: #cccccc; 
+            margin-bottom: 2px;
         }
         
         .stat-value {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: bold;
             color: #00ff00;
         }
@@ -93,28 +97,29 @@
         .action-box {
             background: #0d1a0d;
             border: 1px solid #004400;
-            padding: 8px;
+            padding: 10px;
             text-align: center;
             font-weight: bold;
             color: #00ff00;
             text-transform: uppercase;
-            border-radius: 2px;
+            border-radius: 4px;
+            letter-spacing: 1px;
         }
         
-        /* 2. The Visual Grid (Your 3x3 Box) */
+        /* 2. The Visual Grid */
         .radar-container {
             margin-top: 5px;
             margin-bottom: 15px;
             padding: 10px;
             display: inline-block;
-            border: 1px solid #1a1a1a;
+            border: 1px solid #222;
             background: #0a0a0a;
             border-radius: 4px;
         }
         .radar-label {
-            font-size: 10px;
-            color: #444;
-            margin-bottom: 5px;
+            font-size: 11px;
+            color: #aaaaaa; /* Brighter grey */
+            margin-bottom: 8px;
             text-align: center;
             letter-spacing: 1px;
         }
@@ -135,18 +140,20 @@
         
         /* Grid States */
         .cell.target { border: 2px solid #00ff00; box-shadow: inset 0 0 5px rgba(0,255,0,0.2); }
-        .cell.possible { border: 2px dashed #aaaa00; opacity: 0.6; } /* Dimmer yellow for style */
-        .cell.hit { background-color: #00ff00; border: 2px solid #00ff00; box-shadow: 0 0 15px rgba(0,255,0,0.5); }
+        .cell.possible { border: 2px dashed #ffff00; opacity: 0.8; } /* Brighter Yellow */
+        .cell.hit { background-color: #00ff00; border: 2px solid #00ff00; box-shadow: 0 0 15px rgba(0,255,0,0.6); }
 
     </style>
 </head>
 <body>
 
     <div id="terminal-output">
-        <div style="opacity: 0.7; font-size: 12px; margin-bottom: 20px;">
-            RIVAL'S GIGA FISH TOOL v4.5<br>
-            ---------------------------<br>
-            Commands: 0-8 (Positions) | 'deck' | 'reset'
+        <div style="font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 5px; letter-spacing: 1px;">
+            RIVAL'S GIGA FISH TOOL v4.6
+        </div>
+        <div style="opacity: 0.8; font-size: 12px; margin-bottom: 20px; color: #ccc;">
+            Connected to Community Logic.<br>
+            Type <span style="color: #fff; font-weight: bold;">'help'</span> for the spell list.
         </div>
         <div style="color: yellow;">[!] SYSTEM: Please type 'deck' to set your cards first.</div>
         <br>
@@ -163,7 +170,6 @@
 
     class ApexFish {
         constructor() {
-            // LOGIC: Adjacency Map (Same as Python)
             this.adj = {
                 0: new Set([0, 1, 3]), 1: new Set([0, 1, 2, 4]), 2: new Set([1, 2, 5]),
                 3: new Set([0, 3, 4, 6]), 4: new Set([1, 3, 4, 5, 7]), 
@@ -172,7 +178,6 @@
             this.history = [];
             this.deck = [];
             
-            // LOGIC: Spells (Same as Python)
             this.CROSS = new Set([1, 3, 4, 5, 7]);
             this.CLUSTERS = {
                 0: new Set([0, 1, 3, 4]), 2: new Set([1, 2, 4, 5]),
@@ -185,7 +190,7 @@
             const output = document.getElementById('terminal-output');
             const line = document.createElement('div');
             line.style.color = color;
-            line.textContent = text;
+            line.innerHTML = text; // Changed to innerHTML to allow styling inside strings
             output.appendChild(line);
             output.scrollTop = output.scrollHeight;
         }
@@ -202,7 +207,6 @@
             this.deck = [];
             const cards = inputStr.toLowerCase().split(' ');
             cards.forEach(card => {
-                // LOGIC: Shortcuts
                 if (card.includes('2') || card.includes('box')) this.deck.push("2x2 CLUSTER");
                 else if (card.includes('3') || card.includes('row') || card.includes('t') || card.includes('m') || card.includes('b')) this.deck.push("3x1 HORIZONTAL");
                 else if (card.includes('c') || card.includes('x')) this.deck.push("CROSS SPELL");
@@ -232,7 +236,6 @@
         }
 
         solve(pos) {
-            // LOGIC: Reset on impossible move
             if (this.history.length > 0) {
                 const lastPos = this.history[this.history.length - 1];
                 if (!this.adj[lastPos].has(pos)) {
@@ -252,7 +255,6 @@
             const possible = new Set(this.adj[pos]);
             let volatility = "LOW";
 
-            // LOGIC: Anti-Backtrack
             if (this.history.length >= 2) {
                 const prevPos = this.history[this.history.length - 2];
                 if (possible.has(prevPos) && this.history.length > 2) {
@@ -261,7 +263,6 @@
                 }
             }
 
-            // LOGIC: Best Spell Selection
             let spellName = "";
             let spellTiles = new Set();
 
@@ -277,12 +278,10 @@
                 spellTiles = this.ROWS[rowStart];
             }
 
-            // LOGIC: Confidence Calculation
             const hits = this.intersect(spellTiles, possible).size;
             let baseConf = (hits / possible.size) * 100;
             let finalConf = volatility === "LOW" ? baseConf : baseConf - 10;
 
-            // LOGIC: Deck Validation
             let recommendation = "PLAY";
             let actionColor = "#00ff00"; 
             if (this.deck.length > 0) {
@@ -296,7 +295,7 @@
                 recommendation = `CAST ${spellName} (No Deck)`;
             }
 
-            // --- RENDER RESULT CARD (THE NEW UI PART) ---
+            // --- RESULT CARD UI ---
             const resultHtml = `
             <div class="result-card">
                 <div class="result-header">ANALYSIS: POSITION ${pos}</div>
@@ -331,7 +330,6 @@
             const val = input.value.trim();
             input.value = '';
             
-            // Echo the user command
             bot.printRaw(`<div style="color: #666; margin-top: 5px;">> ${val}</div>`);
 
             if (waitingForDeck) {
@@ -353,9 +351,26 @@
                 bot.print("Session Terminated.", "red");
                 return;
             }
+            
+            // --- UPDATED HELP MENU ---
             if (val.toLowerCase() === 'help') {
-                bot.print("Commands: 0-8 (Position) | deck | reset", "cyan");
-                bot.print("Shortcuts: c (Cross) | 2 (Box) | t/m/b (Rows)", "cyan");
+                let helpHtml = `
+                <div style="border: 1px solid #444; padding: 10px; margin-top: 5px; background: #0a0a0a; width: fit-content;">
+                    <div style="color: #fff; font-weight: bold; margin-bottom: 5px;">📜 SPELL SHORTCUTS</div>
+                    <div style="display: grid; grid-template-columns: 50px 1fr; gap: 5px; font-size: 13px;">
+                        <span style="color: cyan;">c</span> <span style="color: #ccc;">Cross / +</span>
+                        <span style="color: cyan;">2</span> <span style="color: #ccc;">2x2 Box</span>
+                        <span style="color: cyan;">t</span> <span style="color: #ccc;">Top Row</span>
+                        <span style="color: cyan;">m</span> <span style="color: #ccc;">Mid Row</span>
+                        <span style="color: cyan;">b</span> <span style="color: #ccc;">Bot Row</span>
+                        <span style="color: cyan;">l</span> <span style="color: #ccc;">Left Col</span>
+                        <span style="color: cyan;">r</span> <span style="color: #ccc;">Right Col</span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #666;">
+                        Usage: Type 'deck' then 'c 2 t'
+                    </div>
+                </div>`;
+                bot.printRaw(helpHtml);
                 return;
             }
 
