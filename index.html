@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexFish Terminal v5.1</title>
+    <title>Giga Fish Terminal</title>
     <style>
         /* --- CORE TERMINAL STYLES --- */
         body {
@@ -22,7 +22,6 @@
             flex-grow: 1;
             overflow-y: auto;
             padding-bottom: 20px;
-            /* Hide scrollbar for cleaner look */
             scrollbar-width: none; 
         }
         #terminal-output::-webkit-scrollbar { 
@@ -151,10 +150,10 @@
         .cell.possible { border: 2px dashed #ffff00; opacity: 0.8; } 
         .cell.hit { background-color: #00ff00; border: 2px solid #00ff00; box-shadow: 0 0 15px rgba(0,255,0,0.6); }
 
-        /* --- NEW: CLICKABLE KEYPAD --- */
+        /* --- CLICKABLE KEYPAD --- */
         #keypad-container {
             position: fixed;
-            bottom: 60px; /* Above the input line */
+            bottom: 60px;
             right: 20px;
             background: #0a0a0a;
             border: 1px solid #333;
@@ -194,7 +193,6 @@
             background: #0d1a0d;
         }
 
-        /* Mobile tweaks */
         @media (max-width: 600px) {
             #keypad-container {
                 position: relative;
@@ -212,11 +210,10 @@
     <div id="terminal-output">
         <div id="header-block">
             <div style="font-size: 16px; font-weight: 900; color: #00ff00; margin-bottom: 10px; letter-spacing: 1px;">
-                GIGA FISH TOOL | >> iniializing.... lets fishh
+                RIVAL'S GIGA FISH TOOL v5.3
             </div>
-            
-            <div style="color: #FFA500; font-weight: bold;">
-                [!] GIGAMIND: Click on fish location (0-8)
+            <div style="color: orange; font-weight: bold;">
+                [!] GIGAMIND: Input fish location (0-8)
             </div>
             <br>
         </div>
@@ -278,22 +275,20 @@
             output.scrollTop = output.scrollHeight;
         }
         
-        // NEW CLEAR FUNCTION
+        // FIXED: Clear Screen now restores the ORANGE prompt
         clearScreen() {
             const output = document.getElementById('terminal-output');
-            // Remove everything except the header block
-            // We reconstruct the initial state
             output.innerHTML = `
             <div id="header-block">
                 <div style="font-size: 16px; font-weight: 900; color: #00ff00; margin-bottom: 10px; letter-spacing: 1px;">
-                    RIVAL'S GIGA FISH TOOL v5.1
+                    RIVAL'S GIGA FISH TOOL v5.3
                 </div>
-                <div style="color: #00ff00; font-weight: bold;">
+                <div style="color: orange; font-weight: bold;">
                     [!] GIGAMIND: Input fish location (0-8)
                 </div>
                 <br>
             </div>`;
-            this.history = []; // Optional: Do we reset history on clear? Usually yes for a fresh start.
+            this.history = []; 
         }
 
         intersect(setA, setB) {
@@ -318,7 +313,6 @@
         }
 
         solve(pos) {
-            // Reset logic
             if (this.history.length > 0) {
                 const lastPos = this.history[this.history.length - 1];
                 if (!this.adj[lastPos].has(pos)) {
@@ -332,7 +326,6 @@
             const possible = new Set(this.adj[pos]);
             let volatility = "LOW";
 
-            // Anti-Backtrack
             if (this.history.length >= 2) {
                 const prevPos = this.history[this.history.length - 2];
                 if (possible.has(prevPos) && this.history.length > 2) {
@@ -341,7 +334,6 @@
                 }
             }
 
-            // Spell Select
             let spellName = "";
             let spellTiles = new Set();
 
@@ -363,7 +355,6 @@
 
             let recommendation = `CAST ${spellName}`;
 
-            // Result Card
             const resultHtml = `
             <div class="result-card">
                 <div class="result-header">ANALYSIS: POSITION ${pos}</div>
@@ -391,9 +382,7 @@
     const bot = new ApexFish();
     const input = document.getElementById('cmd');
 
-    // Global function for keypad buttons
     function sendInput(val) {
-        // Visual feedback in terminal
         if (val !== 'clear') {
             bot.printRaw(`<div style="color: #666; margin-top: 5px;">> ${val}</div>`);
         }
@@ -413,7 +402,6 @@
             
             if (val === '') return;
             
-            // Handle Commands
             if (val.toLowerCase() === 'reset') {
                 bot.history = [];
                 bot.print("History Cleared.", "orange");
@@ -428,7 +416,6 @@
                 return;
             }
             
-            // Handle Numbers
             if (!isNaN(parseInt(val)) && parseInt(val) >= 0 && parseInt(val) <= 8) {
                 bot.printRaw(`<div style="color: #666; margin-top: 5px;">> ${val}</div>`);
                 bot.solve(parseInt(val));
