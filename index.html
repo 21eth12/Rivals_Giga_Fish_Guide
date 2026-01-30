@@ -1,818 +1,892 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gigaverse Fish Assist</title>
-  <style>
-    :root{
-      --bg:#050a12;
-      --bg2:#071018;
-      --panel:#0b1724;
-      --panel2:#08121d;
-      --ink:#dffcff;
-      --muted:#8fb7c9;
-      --cyan:#00f0ff;
-      --cyan2:#7fdcff;
-      --warn:#ffb000;
-      --bad:#ff4d4d;
-      --good:#00ff99;
-      --glow: rgba(0,255,255,.22);
-      --glow2: rgba(0,255,255,.10);
-    }
+import React, { useMemo, useState } from "react";
 
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      color:var(--ink);
-      background: radial-gradient(900px 500px at 20% 0%, rgba(0,240,255,.09), transparent 55%),
-                  radial-gradient(700px 400px at 90% 10%, rgba(0,240,255,.06), transparent 55%),
-                  linear-gradient(180deg, var(--bg), var(--bg2));
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    }
+/**
+ * GIGAVERSE FISH ASSIST (Day 2 update pack)
+ * ✅ 1) Withdraw warning logic
+ * ✅ 2) Deck health + coverage warning
+ * ✅ 3) “RISK: <reason>” content (instead of plain RISK)
+ * ✅ + Fish logo in the left box before title
+ *
+ * Drop this file in your React app as App.tsx (Tailwind assumed).
+ */
 
-    .wrap{max-width:1100px;margin:0 auto;padding:18px;}
-    .topbar{
-      display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;
-      padding:14px 14px;
-      border:1px solid rgba(0,240,255,.35);
-      border-radius:16px;
-      background: linear-gradient(180deg, rgba(11,23,36,.92), rgba(7,16,24,.92));
-      box-shadow: 0 0 16px var(--glow);
-      position:sticky;top:0;z-index:10;
-      backdrop-filter: blur(6px);
-    }
-    .brand{
-      display:flex;gap:10px;align-items:center;min-width:260px;
-    }
-    .logo{
-      width:38px;height:38px;border-radius:12px;
-      border:1px solid rgba(0,240,255,.35);
-      box-shadow:0 0 14px var(--glow);
-      background:
-        radial-gradient(circle at 30% 30%, rgba(0,240,255,.28), transparent 55%),
-        linear-gradient(180deg, rgba(0,240,255,.10), rgba(0,0,0,.0));
-    }
-    .title{
-      font-weight:900; letter-spacing:.9px;
-      font-size:14px;
-      line-height:1.1;
-    }
-    .subtitle{
-      font-size:12px;color:var(--muted);margin-top:2px;
-    }
+/* ----------------------------- Types ----------------------------- */
 
-    .controls{
-      display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
-    }
-    .pill{
-      display:flex;gap:8px;align-items:center;
-      padding:8px 10px;
-      border:1px solid rgba(0,240,255,.28);
-      border-radius:14px;
-      background: linear-gradient(180deg, rgba(16,32,48,.78), rgba(8,18,29,.78));
-      box-shadow: 0 0 10px var(--glow2);
-      font-size:12px;color:var(--muted);
-      user-select:none;
-    }
-    .pill b{color:var(--ink)}
-    .pill input[type="number"]{
-      width:64px;
-      padding:6px 8px;
-      border-radius:10px;
-      border:1px solid rgba(0,240,255,.28);
-      background: rgba(0,0,0,.25);
-      color:var(--ink);
-      outline:none;
-    }
-    .pill input[type="checkbox"]{accent-color: var(--cyan);}
-    .btn{
-      cursor:pointer;
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(0,240,255,.35);
-      background: linear-gradient(180deg, rgba(0,240,255,.12), rgba(0,0,0,.08));
-      color:var(--ink);
-      box-shadow: 0 0 14px var(--glow2);
-      font-weight:800;
-    }
-    .btn:hover{box-shadow:0 0 18px var(--glow);border-color:rgba(0,240,255,.6)}
-    .btn.danger{border-color: rgba(255,77,77,.55); box-shadow: 0 0 12px rgba(255,77,77,.20);}
-    .btn.danger:hover{box-shadow:0 0 18px rgba(255,77,77,.30);}
-    .btn.ghost{background: rgba(0,0,0,.18);}
+type FishType = "1x1" | "PLUS" | "X";
+type SpellId =
+  | "center_single"
+  | "corners"
+  | "top_row"
+  | "mid_row"
+  | "bot_row"
+  | "left_col"
+  | "mid_col"
+  | "right_col"
+  | "plus_spell"
+  | "x_spell";
 
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
-      margin-top:14px;
-    }
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr;}
-      .brand{min-width:auto}
-    }
-
-    .card{
-      border:1px solid rgba(0,240,255,.28);
-      border-radius:16px;
-      background: linear-gradient(180deg, rgba(11,23,36,.85), rgba(7,16,24,.85));
-      box-shadow: 0 0 14px var(--glow2);
-      padding:14px;
-    }
-    .card h3{
-      margin:0 0 10px 0;
-      font-size:13px;
-      letter-spacing:.8px;
-      color:var(--cyan2);
-      text-transform:uppercase;
-    }
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-    .hint{font-size:12px;color:var(--muted);line-height:1.4}
-
-    .boardWrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
-    .board{
-      display:grid;
-      grid-template-columns: repeat(3, 78px);
-      gap:10px;
-      padding:10px;
-      border-radius:16px;
-      border:1px solid rgba(0,240,255,.25);
-      background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.08));
-      box-shadow: inset 0 0 18px rgba(0,0,0,.55);
-    }
-    .cell{
-      width:78px;height:78px;
-      border-radius:14px;
-      border:2px solid rgba(0,240,255,.22);
-      background:
-        radial-gradient(circle at 40% 35%, rgba(0,240,255,.09), transparent 55%),
-        linear-gradient(180deg, rgba(16,32,48,.70), rgba(8,18,29,.70));
-      cursor:pointer;
-      position:relative;
-      overflow:hidden;
-      user-select:none;
-    }
-    .cell:hover{border-color: rgba(0,240,255,.62); box-shadow: 0 0 14px var(--glow);}
-    .cell .idx{
-      position:absolute;top:8px;left:10px;
-      font-size:12px;color:rgba(223,252,255,.55);
-      font-weight:800;
-    }
-    .cell .heat{
-      position:absolute;inset:0;
-      background: rgba(0,240,255,.0);
-      transition: background .12s ease;
-    }
-    .cell.current{
-      border-color: rgba(0,255,153,.75);
-      box-shadow: 0 0 18px rgba(0,255,153,.18);
-    }
-    .cell.current::after{
-      content:"";
-      position:absolute;inset:-18px;
-      background: radial-gradient(circle at 50% 50%, rgba(0,255,153,.18), transparent 58%);
-    }
-
-    .history{
-      display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-      margin-top:10px;
-      font-size:12px;color:var(--muted);
-    }
-    .chip{
-      padding:6px 9px;border-radius:999px;
-      border:1px solid rgba(0,240,255,.20);
-      background: rgba(0,0,0,.18);
-      color:var(--ink);
-    }
-
-    .bars{display:flex;flex-direction:column;gap:10px;margin-top:6px}
-    .barRow{display:flex;align-items:center;gap:10px}
-    .barName{width:70px;color:var(--muted);font-size:12px}
-    .barOuter{
-      flex:1;height:12px;border-radius:999px;
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(0,240,255,.20);
-      overflow:hidden;
-    }
-    .barInner{height:100%;width:0%; background: rgba(0,240,255,.42);}
-    .barPct{width:52px;text-align:right;color:var(--ink);font-size:12px}
-
-    .spells{
-      display:grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap:10px;
-    }
-    @media (max-width: 980px){
-      .spells{grid-template-columns: repeat(2, minmax(0, 1fr));}
-    }
-    .spell{
-      border-radius:16px;
-      border:1px solid rgba(0,240,255,.22);
-      background: linear-gradient(180deg, rgba(8,18,29,.85), rgba(0,0,0,.12));
-      box-shadow: 0 0 10px var(--glow2);
-      padding:10px;
-      cursor:pointer;
-      user-select:none;
-      position:relative;
-    }
-    .spell:hover{border-color: rgba(0,240,255,.6); box-shadow:0 0 16px var(--glow);}
-    .spell.selected{
-      border-color: rgba(0,255,153,.70);
-      box-shadow:0 0 18px rgba(0,255,153,.18);
-    }
-    .spellTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
-    .spellName{font-weight:900;font-size:12px;letter-spacing:.6px;color:var(--cyan2);}
-    .badge{
-      font-size:11px;color:var(--muted);
-      border:1px solid rgba(0,240,255,.20);
-      padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.16);
-    }
-    .miniGrid{
-      display:grid;
-      grid-template-columns: repeat(3, 16px);
-      gap:5px;
-      justify-content:flex-start;
-      margin:6px 0 10px 0;
-    }
-    .miniCell{
-      width:16px;height:16px;border-radius:5px;
-      border:1px solid rgba(0,240,255,.20);
-      background: rgba(255,255,255,.03);
-    }
-    .miniCell.on{border-color: rgba(0,240,255,.65); box-shadow:0 0 8px rgba(0,240,255,.20);}
-    .miniCell.bonus{border-color: rgba(255,176,0,.75); box-shadow:0 0 10px rgba(255,176,0,.18);}
-    .spellStats{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
-    .spellStats b{color:var(--ink)}
-
-    .rec{
-      display:flex;flex-direction:column;gap:10px;
-    }
-    .recMain{
-      padding:12px 12px;
-      border-radius:16px;
-      border:1px solid rgba(0,240,255,.28);
-      background: linear-gradient(180deg, rgba(0,240,255,.10), rgba(0,0,0,.10));
-      box-shadow: 0 0 14px var(--glow2);
-      font-weight:900;
-      letter-spacing:.6px;
-    }
-    .recMain .tag{
-      display:inline-block;margin-left:8px;
-      font-size:11px;font-weight:900;
-      padding:4px 8px;border-radius:999px;
-      border:1px solid rgba(0,240,255,.20);
-      background: rgba(0,0,0,.16);
-      color: var(--cyan2);
-    }
-    .kv{
-      display:flex;gap:10px;flex-wrap:wrap;
-      font-size:12px;color:var(--muted)
-    }
-    .kv .k{
-      padding:8px 10px;border-radius:14px;
-      border:1px solid rgba(0,240,255,.20);
-      background: rgba(0,0,0,.16);
-    }
-    .kv b{color:var(--ink)}
-    .why{
-      color:var(--muted); font-size:12px; line-height:1.45;
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid rgba(0,240,255,.18);
-      background: rgba(0,0,0,.14);
-    }
-
-    .footerNote{
-      margin-top:12px;
-      font-size:12px;
-      color: var(--muted);
-      opacity:.9;
-    }
-    .smalllink{color:var(--cyan2);text-decoration:none}
-    .smalllink:hover{text-decoration:underline}
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-          <div class="title">GIGAVERSE FISH ASSIST</div>
-          <div class="subtitle">Local-only predictor • no login • no wallet</div>
-        </div>
-      </div>
-
-      <div class="controls">
-        <div class="pill">Mana <input id="mana" type="number" min="0" max="99" value="5"></div>
-        <div class="pill">Catch <input id="catch" type="number" min="0" max="999" value="12"></div>
-        <label class="pill" title="If level 10+, fish may switch patterns sometimes">
-          Lvl 10+ <input id="lvl10" type="checkbox">
-        </label>
-        <button class="btn ghost" id="clearMove">Undo</button>
-        <button class="btn danger" id="resetAll">Reset</button>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <h3>Fish Position</h3>
-        <div class="boardWrap">
-          <div>
-            <div class="board" id="inputBoard"></div>
-            <div class="history" id="history"></div>
-          </div>
-
-          <div style="min-width:260px;flex:1">
-            <div class="hint">
-              Click the fish’s <b>current tile</b> each turn (0–8).<br>
-              The tool will infer fish type (1x1 / Plus / X) and recommend the best spell from your selected hand.
-            </div>
-            <div style="height:10px"></div>
-            <div class="hint">
-              Safety logic: if a miss would drop catch to <b>0 or below</b>, that spell gets rejected.
-            </div>
-            <div class="footerNote">
-              Tip: Pick spells in <b>Your Spells</b> below — only selected spells are considered.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Fish Type Detector</h3>
-        <div class="bars" id="bars"></div>
-
-        <div style="height:14px"></div>
-
-        <h3>Next Move Prediction</h3>
-        <div class="board" id="heatBoard"></div>
-
-        <div style="height:12px"></div>
-
-        <div class="rec" id="recBox">
-          <div class="recMain" id="recMain">Click a tile to begin <span class="tag">READY</span></div>
-          <div class="kv" id="recKv"></div>
-          <div class="why" id="recWhy">Once you input at least 2 positions, probabilities improve a lot.</div>
-        </div>
-      </div>
-
-      <div class="card" style="grid-column: 1 / -1;">
-        <h3>Your Spells</h3>
-        <div class="hint" style="margin-bottom:10px">
-          Click to toggle spells in your hand. The engine selects the spell with best expected value (EV) under safety + mana.
-        </div>
-        <div class="spells" id="spellPicker"></div>
-
-        <div class="footerNote">
-          Want to keep it even simpler? Use only 3 spells at first (Plus, Corners, one Row/Col), then expand.
-        </div>
-      </div>
-    </div>
-
-    <div class="footerNote">
-      If you want, I can help you add: spell import presets, “redraw” EV, and a cleaner mobile layout.  
-      <span style="opacity:.7">This build is designed to be dropped into GitHub Pages as a single file.</span>
-    </div>
-  </div>
-
-<script>
-/** =========================
- *  0..8 board mapping:
- *  0 1 2
- *  3 4 5
- *  6 7 8
- *  ========================= */
-
-const TYPES = ["ONE","PLUS","X"];
-
-// --- Movement models (NO "stay", fish always moves) ---
-function orthNeighbors(i){
-  const r = Math.floor(i/3), c = i%3;
-  const out = [];
-  if (r>0) out.push(i-3);
-  if (r<2) out.push(i+3);
-  if (c>0) out.push(i-1);
-  if (c<2) out.push(i+1);
-  return out;
-}
-function diagNeighbors(i){
-  const r = Math.floor(i/3), c = i%3;
-  const out = [];
-  const deltas = [[-1,-1],[-1,1],[1,-1],[1,1]];
-  for (const [dr,dc] of deltas){
-    const nr=r+dr, nc=c+dc;
-    if (nr>=0 && nr<3 && nc>=0 && nc<3) out.push(nr*3+nc);
-  }
-  return out;
-}
-function moves(type, pos){
-  if (type==="ONE") return new Set(orthNeighbors(pos));
-  if (type==="PLUS"){
-    const plusNodes = new Set([1,3,5,7]);
-    if (!plusNodes.has(pos)) return new Set();
-    return new Set([1,3,5,7].filter(x => x !== pos));
-  }
-  if (type==="X") return new Set(diagNeighbors(pos));
-  return new Set();
-}
-function normalizeBelief(b){
-  const s = Object.values(b).reduce((a,x)=>a+x,0) || 1;
-  for (const k of Object.keys(b)) b[k] /= s;
-  return b;
-}
-function updateBelief(belief, prev, cur, level10Plus){
-  // level10Plus -> allow small chance of "switching patterns"
-  const eps = 1e-8;
-  const switchProb = level10Plus ? 0.08 : 0.0; // tune if needed
-  const nb = {...belief};
-  for (const t of TYPES){
-    const allowed = moves(t, prev);
-    const ok = allowed.has(cur);
-    nb[t] = belief[t] * (ok ? 1.0 : (switchProb || eps));
-  }
-  return normalizeBelief(nb);
-}
-function predictNextDist(belief, cur){
-  const dist = Array(9).fill(0);
-  for (const t of TYPES){
-    const m = [...moves(t, cur)];
-    if (m.length === 0) continue;
-    const pEach = 1 / m.length;
-    for (const j of m) dist[j] += belief[t] * pEach;
-  }
-  // dist sums to 1 (approximately)
-  return dist;
-}
-function fmtPct(x){
-  return (x*100).toFixed(1) + "%";
-}
-
-// --- Spell library (fixed orientation) ---
-const SPELLS = [
-  { id:"row_top", name:"Top Row", mana:1, hit:5, miss:-3, tiles:[0,1,2] },
-  { id:"row_mid", name:"Mid Row", mana:1, hit:5, miss:-3, tiles:[3,4,5] },
-  { id:"row_bot", name:"Bottom Row", mana:1, hit:5, miss:-3, tiles:[6,7,8] },
-  { id:"col_left", name:"Left Col", mana:1, hit:5, miss:-3, tiles:[0,3,6] },
-  { id:"col_mid", name:"Mid Col", mana:1, hit:5, miss:-3, tiles:[1,4,7] },
-  { id:"col_right", name:"Right Col", mana:1, hit:5, miss:-3, tiles:[2,5,8] },
-
-  { id:"corners", name:"Corners", mana:1, hit:6, miss:-3, tiles:[0,2,6,8] },
-  // Plus spell: arms only (no center) (matches PLUS fish tiles)
-  { id:"plus_arms", name:"Plus Spell", mana:1, hit:5, miss:-5, tiles:[1,3,5,7] },
-
-  // Full board (safe coverage, low upside)
-  { id:"full_board", name:"Full Board", mana:1, hit:2, miss:-4, tiles:[0,1,2,3,4,5,6,7,8] },
-
-  // Center single (high risk/high reward)
-  { id:"center", name:"Center (Single)", mana:1, hit:10, miss:-5, tiles:[4], bonusTiles:[4], bonus:0 },
-
-  // Bonus examples (3-in-row + one yellow tile). If you want, adjust bonusTiles later.
-  { id:"top_bonus_leftmid", name:"Top Row + Bonus", mana:1, hit:5, bonus:8, miss:-3, tiles:[0,1,2,3], bonusTiles:[3] },
-  { id:"bot_bonus_rightmid", name:"Bottom Row + Bonus", mana:1, hit:5, bonus:8, miss:-3, tiles:[6,7,8,5], bonusTiles:[5] },
-];
-
-// --- App state ---
-const state = {
-  history: [],
-  belief: { ONE: 1/3, PLUS: 1/3, X: 1/3 },
-  selectedSpellIds: new Set([
-    "plus_arms","corners","row_mid","col_mid" // safe default pack
-  ]),
+type Spell = {
+  id: SpellId;
+  name: string;
+  manaCost: number;
+  // tiles in 0..8 that are covered by the spell
+  covers: number[];
+  // catch gain if hit; catch loss if miss
+  hitDelta: number;
+  missDelta: number; // negative value
 };
 
-// --- DOM ---
-const inputBoard = document.getElementById("inputBoard");
-const heatBoard  = document.getElementById("heatBoard");
-const historyEl  = document.getElementById("history");
-const barsEl     = document.getElementById("bars");
-const spellPicker= document.getElementById("spellPicker");
+type Recommendation = {
+  spell: Spell | null;
+  bestNextTile: number | null;
+  hitChance: number;
+  ev: number;
+  riskReasons: string[];
+  coverageScore: number;
+  fishTypeBelief: Record<FishType, number>;
+  nextTileProb: number[]; // length 9
+};
 
-const manaEl = document.getElementById("mana");
-const catchEl = document.getElementById("catch");
-const lvl10El = document.getElementById("lvl10");
+/* ----------------------------- Helpers ----------------------------- */
 
-const recMain = document.getElementById("recMain");
-const recWhy  = document.getElementById("recWhy");
-const recKv   = document.getElementById("recKv");
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
-document.getElementById("resetAll").addEventListener("click", () => resetAll());
-document.getElementById("clearMove").addEventListener("click", () => undoMove());
+const tiles = Array.from({ length: 9 }, (_, i) => i);
 
-// --- Build boards ---
-function makeCell(i, onClick){
-  const d = document.createElement("div");
-  d.className = "cell";
-  d.setAttribute("data-idx", String(i));
-  d.innerHTML = `<div class="idx">${i}</div><div class="heat"></div>`;
-  d.addEventListener("click", () => onClick(i));
-  return d;
+function tileRow(t: number) {
+  return Math.floor(t / 3);
 }
-const inputCells = [];
-const heatCells = [];
-for (let i=0;i<9;i++){
-  const c1 = makeCell(i, (idx)=> addMove(idx));
-  const c2 = makeCell(i, ()=>{});
-  inputBoard.appendChild(c1);
-  heatBoard.appendChild(c2);
-  inputCells.push(c1);
-  heatCells.push(c2);
+function tileCol(t: number) {
+  return t % 3;
 }
 
-// --- Spell picker UI ---
-function miniGridHTML(tiles, bonusTiles){
-  const tileSet = new Set(tiles);
-  const bonusSet = new Set(bonusTiles || []);
-  const wrap = document.createElement("div");
-  wrap.className = "miniGrid";
-  for (let i=0;i<9;i++){
-    const m = document.createElement("div");
-    m.className = "miniCell";
-    if (tileSet.has(i)) m.classList.add("on");
-    if (bonusSet.has(i)) m.classList.add("bonus");
-    wrap.appendChild(m);
-  }
-  return wrap;
-}
-function renderSpells(){
-  spellPicker.innerHTML = "";
-  for (const sp of SPELLS){
-    const card = document.createElement("div");
-    card.className = "spell";
-    if (state.selectedSpellIds.has(sp.id)) card.classList.add("selected");
-
-    const top = document.createElement("div");
-    top.className = "spellTop";
-    top.innerHTML = `<div class="spellName">${sp.name}</div>
-                     <div class="badge">Mana ${sp.mana}</div>`;
-    card.appendChild(top);
-
-    card.appendChild(miniGridHTML(sp.tiles, sp.bonusTiles));
-
-    const stats = document.createElement("div");
-    stats.className = "spellStats";
-    const bonusText = (typeof sp.bonus === "number" && sp.bonusTiles && sp.bonusTiles.length)
-      ? ` • Bonus <b>+${sp.bonus}</b>`
-      : "";
-    stats.innerHTML = `Hit <b>+${sp.hit}</b> • Miss <b>${sp.miss}</b>${bonusText}`;
-    card.appendChild(stats);
-
-    card.addEventListener("click", () => {
-      if (state.selectedSpellIds.has(sp.id)) state.selectedSpellIds.delete(sp.id);
-      else state.selectedSpellIds.add(sp.id);
-      renderSpells();
-      recompute();
-    });
-
-    spellPicker.appendChild(card);
-  }
-}
-renderSpells();
-
-// --- Bars UI ---
-function setBar(container, name, value01){
-  const row = document.createElement("div");
-  row.className = "barRow";
-  row.innerHTML = `
-    <div class="barName">${name}</div>
-    <div class="barOuter"><div class="barInner"></div></div>
-    <div class="barPct">${fmtPct(value01)}</div>
-  `;
-  row.querySelector(".barInner").style.width = `${Math.max(0,Math.min(1,value01))*100}%`;
-  return row;
-}
-function renderBars(){
-  barsEl.innerHTML = "";
-  barsEl.appendChild(setBar(barsEl, "1x1", state.belief.ONE));
-  barsEl.appendChild(setBar(barsEl, "PLUS", state.belief.PLUS));
-  barsEl.appendChild(setBar(barsEl, "X", state.belief.X));
-}
-
-// --- History UI ---
-function renderHistory(){
-  historyEl.innerHTML = "";
-  const label = document.createElement("span");
-  label.textContent = "History:";
-  label.style.color = "var(--muted)";
-  historyEl.appendChild(label);
-
-  if (state.history.length === 0){
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.textContent = "(none)";
-    historyEl.appendChild(chip);
-    return;
-  }
-  for (const p of state.history.slice(-8)){
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    chip.textContent = String(p);
-    historyEl.appendChild(chip);
+function spellCoversFromName(id: SpellId): number[] {
+  switch (id) {
+    case "center_single":
+      return [4];
+    case "corners":
+      return [0, 2, 6, 8];
+    case "top_row":
+      return [0, 1, 2];
+    case "mid_row":
+      return [3, 4, 5];
+    case "bot_row":
+      return [6, 7, 8];
+    case "left_col":
+      return [0, 3, 6];
+    case "mid_col":
+      return [1, 4, 7];
+    case "right_col":
+      return [2, 5, 8];
+    case "plus_spell":
+      return [1, 3, 4, 5, 7];
+    case "x_spell":
+      return [0, 2, 4, 6, 8];
+    default:
+      return [];
   }
 }
 
-// --- Heatmap UI ---
-function renderHeat(dist){
-  // dist: length 9, sums ~1
-  const max = Math.max(...dist, 0.000001);
-  for (let i=0;i<9;i++){
-    const cell = heatCells[i];
-    const heat = cell.querySelector(".heat");
-    const x = dist[i]/max; // 0..1
-    // cyan intensity; keep subtle
-    heat.style.background = `rgba(0,240,255,${(0.08 + 0.40*x).toFixed(3)})`;
-  }
-}
+/**
+ * Very lightweight fish-type belief from movement “shape hints”.
+ * - PLUS: orthogonal-only moves (no diagonals)
+ * - X: diagonal-only moves
+ * - 1x1: tends to “stay/nearby” (we approximate by smaller jumps)
+ *
+ * You can replace this with your real bayes/likelihood model.
+ */
+function inferFishTypeBelief(history: number[]): Record<FishType, number> {
+  if (history.length < 2) return { "1x1": 1 / 3, PLUS: 1 / 3, X: 1 / 3 };
 
-// --- Input board highlight ---
-function renderCurrent(){
-  for (let i=0;i<9;i++) inputCells[i].classList.remove("current");
-  const last = state.history[state.history.length-1];
-  if (typeof last === "number") inputCells[last].classList.add("current");
-}
-
-// --- Recommendation engine ---
-function pHitForSpell(sp, dist){
-  let p = 0;
-  for (const t of sp.tiles) p += dist[t] || 0;
-  return p;
-}
-function bonusExpected(sp, dist){
-  if (!sp.bonusTiles || !sp.bonus) return 0;
-  let p = 0;
-  for (const t of sp.bonusTiles) p += dist[t] || 0;
-  return p * sp.bonus;
-}
-function expectedValue(sp, dist){
-  const p = pHitForSpell(sp, dist);
-  return (p * sp.hit) + ((1-p) * sp.miss) + bonusExpected(sp, dist);
-}
-
-// safety check: if miss could end run, reject
-function isSpellSafe(sp, curCatch){
-  const afterMiss = curCatch + sp.miss; // miss is negative
-  return afterMiss > 0;
-}
-
-// choose best spell among selected ones, within mana and safety
-function chooseBest(dist){
-  const curMana = Number(manaEl.value || 0);
-  const curCatch = Number(catchEl.value || 0);
-
-  const candidates = SPELLS.filter(s => state.selectedSpellIds.has(s.id));
-
-  if (candidates.length === 0){
-    return { kind:"NONE", msg:"Select at least 1 spell." };
+  let ortho = 0;
+  let diag = 0;
+  let small = 0;
+  for (let i = 1; i < history.length; i++) {
+    const a = history[i - 1];
+    const b = history[i];
+    const dr = Math.abs(tileRow(a) - tileRow(b));
+    const dc = Math.abs(tileCol(a) - tileCol(b));
+    const manhattan = dr + dc;
+    if (manhattan === 1) ortho++;
+    if (dr === 1 && dc === 1) diag++;
+    if (manhattan <= 1) small++;
   }
 
-  // filter by mana
-  const affordable = candidates.filter(s => s.mana <= curMana);
-  if (affordable.length === 0){
-    return { kind:"NONE", msg:"No spells affordable (mana too low)." };
-  }
+  // simple scoring
+  const plusScore = 1 + ortho;
+  const xScore = 1 + diag;
+  const oneScore = 1 + small;
 
-  // safety-first: prefer safe spells; if none safe, still show "least lethal" option
-  const safe = affordable.filter(s => isSpellSafe(s, curCatch));
-
-  const pool = safe.length ? safe : affordable;
-
-  let best = null;
-  for (const sp of pool){
-    const p = pHitForSpell(sp, dist);
-    const ev = expectedValue(sp, dist);
-
-    // gentle penalty for spending mana when low
-    const manaPenalty = (curMana <= 2) ? (0.15 * sp.mana) : 0;
-    const score = ev - manaPenalty;
-
-    if (!best || score > best.score){
-      best = { sp, p, ev, score, safe: isSpellSafe(sp, curCatch) };
-    }
-  }
-
-  if (!best){
-    return { kind:"NONE", msg:"No candidate spells." };
-  }
-
-  return { kind:"SPELL", ...best };
+  const sum = plusScore + xScore + oneScore;
+  return { "1x1": oneScore / sum, PLUS: plusScore / sum, X: xScore / sum };
 }
 
-function updateRecUI(result, dist){
-  const curMana = Number(manaEl.value || 0);
-  const curCatch = Number(catchEl.value || 0);
+/**
+ * Next-tile probabilities (placeholder).
+ * Mixes:
+ * - local neighborhood mass (for 1x1)
+ * - orthogonal neighbors (for PLUS)
+ * - diagonal neighbors (for X)
+ */
+function inferNextTileProb(
+  current: number | null,
+  belief: Record<FishType, number>
+): number[] {
+  // If no current tile, uniform
+  if (current === null) return Array(9).fill(1 / 9);
 
-  // info pills
-  recKv.innerHTML = "";
-  const kv = (label, val) => {
-    const d = document.createElement("div");
-    d.className = "k";
-    d.innerHTML = `${label} <b>${val}</b>`;
-    return d;
+  const r = tileRow(current);
+  const c = tileCol(current);
+
+  // neighborhood helper
+  const add = (arr: number[], t: number, w: number) => {
+    if (t < 0 || t > 8) return;
+    arr[t] += w;
   };
 
-  // show predicted next tile (argmax)
-  let argmax = 0;
-  for (let i=1;i<9;i++) if (dist[i] > dist[argmax]) argmax = i;
+  const probs = Array(9).fill(0);
 
-  recKv.appendChild(kv("Best next tile", `${argmax} (${fmtPct(dist[argmax])})`));
-  recKv.appendChild(kv("Mana", String(curMana)));
-  recKv.appendChild(kv("Catch", String(curCatch)));
-
-  if (result.kind !== "SPELL"){
-    recMain.innerHTML = `${result.msg} <span class="tag">CHECK</span>`;
-    recWhy.textContent = "Pick spells and input fish tiles to get recommendations.";
-    return;
+  // 1x1: prefer same tile + 4-neighbors + (tiny) diagonals
+  {
+    const w = belief["1x1"];
+    add(probs, current, 0.45 * w);
+    // orthogonal
+    const ortho = [
+      [r - 1, c],
+      [r + 1, c],
+      [r, c - 1],
+      [r, c + 1],
+    ];
+    ortho.forEach(([rr, cc]) => {
+      if (rr >= 0 && rr < 3 && cc >= 0 && cc < 3) {
+        add(probs, rr * 3 + cc, 0.12 * w);
+      }
+    });
+    // diagonals small
+    const diags = [
+      [r - 1, c - 1],
+      [r - 1, c + 1],
+      [r + 1, c - 1],
+      [r + 1, c + 1],
+    ];
+    diags.forEach(([rr, cc]) => {
+      if (rr >= 0 && rr < 3 && cc >= 0 && cc < 3) {
+        add(probs, rr * 3 + cc, 0.035 * w);
+      }
+    });
   }
 
-  const sp = result.sp;
-  const p = result.p;
-  const ev = result.ev;
-
-  const safetyTag = result.safe ? `<span class="tag">SAFE</span>` : `<span class="tag" style="color:var(--warn)">RISK</span>`;
-  recMain.innerHTML = `▶ CAST: ${sp.name} ${safetyTag}`;
-
-  const afterMiss = curCatch + sp.miss;
-  const afterHit = curCatch + sp.hit;
-
-  const plusReason = state.belief.PLUS > 0.55 && sp.id === "plus_arms"
-    ? "High PLUS probability → Plus Spell covers all PLUS moves."
-    : "";
-  const xReason = state.belief.X > 0.55 && sp.id === "corners"
-    ? "High X probability → Corners often aligns with diagonal/corner landings."
-    : "";
-  const oneReason = state.belief.ONE > 0.55 && (sp.id.startsWith("row_") || sp.id.startsWith("col_"))
-    ? "High 1x1 probability → Rows/Cols are strong coverage vs orthogonal moves."
-    : "";
-
-  const extra = [plusReason, xReason, oneReason].filter(Boolean).join(" ");
-
-  recWhy.innerHTML = `
-    Hit chance: <b>${fmtPct(p)}</b> • EV: <b>${ev.toFixed(2)}</b><br>
-    If HIT → Catch becomes <b>${afterHit}</b>. If MISS → Catch becomes <b style="color:${afterMiss>0?'var(--ink)':'var(--bad)'}">${afterMiss}</b>.<br>
-    ${extra || "Recommendation maximizes expected value under current fish-type belief + safety constraints."}
-  `;
-}
-
-// --- Main recompute ---
-function recompute(){
-  renderBars();
-  renderHistory();
-  renderCurrent();
-
-  if (state.history.length === 0){
-    renderHeat(Array(9).fill(0));
-    recMain.innerHTML = `Click a tile to begin <span class="tag">READY</span>`;
-    recKv.innerHTML = "";
-    recWhy.textContent = "Input fish tile each turn. Select spells you currently have in hand.";
-    return;
+  // PLUS: orthogonal-only (no stay)
+  {
+    const w = belief.PLUS;
+    const ortho = [
+      [r - 1, c],
+      [r + 1, c],
+      [r, c - 1],
+      [r, c + 1],
+    ];
+    ortho.forEach(([rr, cc]) => {
+      if (rr >= 0 && rr < 3 && cc >= 0 && cc < 3) {
+        add(probs, rr * 3 + cc, 0.25 * w);
+      }
+    });
   }
 
-  // Predict next from current
-  const cur = state.history[state.history.length-1];
-  const dist = predictNextDist(state.belief, cur);
-  renderHeat(dist);
-
-  const best = chooseBest(dist);
-  updateRecUI(best, dist);
-}
-
-// --- Add move ---
-function addMove(pos){
-  // Update belief if we have previous position
-  if (state.history.length >= 1){
-    const prev = state.history[state.history.length-1];
-    const level10Plus = !!lvl10El.checked;
-    state.belief = updateBelief(state.belief, prev, pos, level10Plus);
+  // X: diagonal-only (no stay)
+  {
+    const w = belief.X;
+    const diags = [
+      [r - 1, c - 1],
+      [r - 1, c + 1],
+      [r + 1, c - 1],
+      [r + 1, c + 1],
+    ];
+    diags.forEach(([rr, cc]) => {
+      if (rr >= 0 && rr < 3 && cc >= 0 && cc < 3) {
+        add(probs, rr * 3 + cc, 0.25 * w);
+      }
+    });
   }
-  state.history.push(pos);
 
-  // Keep recent history size reasonable
-  if (state.history.length > 30) state.history.shift();
-
-  recompute();
+  // Normalize
+  const s = probs.reduce((a, b) => a + b, 0);
+  if (s <= 0) return Array(9).fill(1 / 9);
+  return probs.map((p) => p / s);
 }
 
-// --- Undo / Reset ---
-function undoMove(){
-  if (state.history.length === 0) return;
-  state.history.pop();
-  // Rebuild belief from scratch using remaining history
-  state.belief = { ONE: 1/3, PLUS: 1/3, X: 1/3 };
-  const level10Plus = !!lvl10El.checked;
-  for (let i=1;i<state.history.length;i++){
-    state.belief = updateBelief(state.belief, state.history[i-1], state.history[i], level10Plus);
+/**
+ * Coverage score = probability mass covered by your *available* spells (in hand & selected).
+ * Values: 0..1
+ */
+function computeCoverageScore(nextProb: number[], spells: Spell[]): number {
+  if (spells.length === 0) return 0;
+  const covered = new Set<number>();
+  spells.forEach((sp) => sp.covers.forEach((t) => covered.add(t)));
+  let mass = 0;
+  for (let i = 0; i < 9; i++) {
+    if (covered.has(i)) mass += nextProb[i];
   }
-  recompute();
-}
-function resetAll(){
-  state.history = [];
-  state.belief = { ONE: 1/3, PLUS: 1/3, X: 1/3 };
-  recompute();
+  return clamp01(mass);
 }
 
-// --- Initialize bars once ---
-renderBars();
-recompute();
-</script>
-</body>
-</html>
+function computeHitChance(nextProb: number[], covers: number[]): number {
+  let p = 0;
+  for (const t of covers) p += nextProb[t] ?? 0;
+  return clamp01(p);
+}
+
+/* ----------------------------- UI bits ----------------------------- */
+
+function Chip({
+  children,
+  tone = "neutral",
+}: {
+  children: React.ReactNode;
+  tone?: "neutral" | "good" | "warn" | "bad";
+}) {
+  const base =
+    "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs border";
+  const tones: Record<string, string> = {
+    neutral: "border-white/10 text-white/80 bg-white/5",
+    good: "border-emerald-400/20 text-emerald-200 bg-emerald-500/10",
+    warn: "border-amber-400/20 text-amber-200 bg-amber-500/10",
+    bad: "border-rose-400/20 text-rose-200 bg-rose-500/10",
+  };
+  return <span className={`${base} ${tones[tone]}`}>{children}</span>;
+}
+
+function Panel({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/5 shadow-[0_0_0_1px_rgba(0,0,0,0.2),0_20px_80px_rgba(0,0,0,0.35)]">
+      <div className="px-6 pt-5 pb-3">
+        <div className="text-[12px] tracking-[0.2em] text-cyan-200/90 font-semibold">
+          {title}
+        </div>
+      </div>
+      <div className="px-6 pb-6">{children}</div>
+    </div>
+  );
+}
+
+function TileGrid({
+  selected,
+  highlights,
+  onClick,
+  labelMode = "index",
+}: {
+  selected: number | null;
+  highlights?: Set<number>;
+  onClick?: (t: number) => void;
+  labelMode?: "index" | "none";
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {tiles.map((t) => {
+        const isSel = selected === t;
+        const isHi = highlights?.has(t) ?? false;
+        return (
+          <button
+            key={t}
+            onClick={() => onClick?.(t)}
+            className={[
+              "relative h-20 rounded-2xl border transition",
+              "bg-gradient-to-b from-white/10 to-white/0",
+              isSel
+                ? "border-emerald-300/70 shadow-[0_0_0_1px_rgba(16,185,129,0.25),0_0_40px_rgba(16,185,129,0.15)]"
+                : "border-white/10 hover:border-white/20",
+              isHi && !isSel
+                ? "border-cyan-300/40 shadow-[0_0_0_1px_rgba(34,211,238,0.12)]"
+                : "",
+            ].join(" ")}
+          >
+            {labelMode === "index" && (
+              <span className="absolute top-3 left-3 text-xs text-white/50">
+                {t}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FishLogo() {
+  // simple inline SVG fish mark (cyan glow)
+  return (
+    <div className="h-12 w-12 rounded-2xl border border-cyan-300/25 bg-cyan-500/10 shadow-[0_0_40px_rgba(34,211,238,0.12)] grid place-items-center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M14.5 7.5c2.5 0 5 1.5 7 4.5-2 3-4.5 4.5-7 4.5-2.2 0-4.1-1.2-5.6-3.5H6.2L4 19l.8-4.2L4 10l2.2 2h2.7c1.5-2.3 3.4-3.5 5.6-3.5Z"
+          stroke="rgba(34,211,238,0.95)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="16.7"
+          cy="11.2"
+          r="1"
+          fill="rgba(34,211,238,0.95)"
+        />
+      </svg>
+    </div>
+  );
+}
+
+/* ----------------------------- Main App ----------------------------- */
+
+const ALL_SPELLS: Spell[] = [
+  { id: "center_single", name: "Center (Single)", manaCost: 2, covers: spellCoversFromName("center_single"), hitDelta: 10, missDelta: -5 },
+  { id: "corners", name: "Corners", manaCost: 3, covers: spellCoversFromName("corners"), hitDelta: 6, missDelta: -3 },
+  { id: "top_row", name: "Top Row", manaCost: 3, covers: spellCoversFromName("top_row"), hitDelta: 5, missDelta: -3 },
+  { id: "mid_row", name: "Mid Row", manaCost: 3, covers: spellCoversFromName("mid_row"), hitDelta: 5, missDelta: -3 },
+  { id: "bot_row", name: "Bottom Row", manaCost: 3, covers: spellCoversFromName("bot_row"), hitDelta: 5, missDelta: -3 },
+  { id: "left_col", name: "Left Col", manaCost: 3, covers: spellCoversFromName("left_col"), hitDelta: 5, missDelta: -3 },
+  { id: "mid_col", name: "Mid Col", manaCost: 3, covers: spellCoversFromName("mid_col"), hitDelta: 5, missDelta: -3 },
+  { id: "right_col", name: "Right Col", manaCost: 3, covers: spellCoversFromName("right_col"), hitDelta: 5, missDelta: -3 },
+  { id: "plus_spell", name: "Plus Spell", manaCost: 4, covers: spellCoversFromName("plus_spell"), hitDelta: 5, missDelta: -3 },
+  { id: "x_spell", name: "X Spell", manaCost: 4, covers: spellCoversFromName("x_spell"), hitDelta: 5, missDelta: -3 },
+];
+
+function formatPct(x: number) {
+  return `${(x * 100).toFixed(1)}%`;
+}
+
+export default function App() {
+  // top bar state
+  const [mana, setMana] = useState(6);
+  const [catchValue, setCatchValue] = useState(0);
+  const [lvl10Plus, setLvl10Plus] = useState(true);
+
+  // fish state
+  const [history, setHistory] = useState<number[]>([]);
+  const currentTile = history.length ? history[history.length - 1] : null;
+
+  // deck/hand state
+  const [deck, setDeck] = useState<SpellId[]>([
+    "top_row",
+    "mid_row",
+    "bot_row",
+    "left_col",
+    "center_single",
+  ]); // pretend these are your current drawn cards
+  const [selectedInHand, setSelectedInHand] = useState<Set<SpellId>>(
+    () => new Set(deck)
+  );
+
+  const cardsRemaining = deck.length;
+
+  const belief = useMemo(() => inferFishTypeBelief(history), [history]);
+  const nextProb = useMemo(
+    () => inferNextTileProb(currentTile, belief),
+    [currentTile, belief]
+  );
+
+  const selectedSpells = useMemo(() => {
+    const ids = Array.from(selectedInHand);
+    return ids
+      .map((id) => ALL_SPELLS.find((s) => s.id === id))
+      .filter(Boolean) as Spell[];
+  }, [selectedInHand]);
+
+  // coverage score (for Day 2 warning)
+  const coverageScore = useMemo(
+    () => computeCoverageScore(nextProb, selectedSpells),
+    [nextProb, selectedSpells]
+  );
+
+  const recommendation: Recommendation = useMemo(() => {
+    const fishTypeLocked = Math.max(belief["1x1"], belief.PLUS, belief.X) >= 0.9;
+
+    // Choose best spell by EV with “safety” gating (don’t allow miss to drop catch <= 0)
+    let best: Spell | null = null;
+    let bestEV = -Infinity;
+    let bestHit = 0;
+
+    for (const sp of selectedSpells) {
+      if (sp.manaCost > mana) continue;
+
+      const hitChance = computeHitChance(nextProb, sp.covers);
+
+      // Expected change to catch (simple)
+      const ev = hitChance * sp.hitDelta + (1 - hitChance) * sp.missDelta;
+
+      // Safety logic: reject spells that would drop catch to 0 or below if miss
+      const missCatch = catchValue + sp.missDelta;
+      const violatesSafety = missCatch <= 0;
+
+      // You can tweak: if you want “allow risky” at low catch, remove this.
+      if (violatesSafety) continue;
+
+      if (ev > bestEV) {
+        bestEV = ev;
+        best = sp;
+        bestHit = hitChance;
+      }
+    }
+
+    // If all got rejected by safety, pick the best EV anyway (but mark as risky)
+    if (!best) {
+      for (const sp of selectedSpells) {
+        if (sp.manaCost > mana) continue;
+        const hitChance = computeHitChance(nextProb, sp.covers);
+        const ev = hitChance * sp.hitDelta + (1 - hitChance) * sp.missDelta;
+        if (ev > bestEV) {
+          bestEV = ev;
+          best = sp;
+          bestHit = hitChance;
+        }
+      }
+    }
+
+    // Best next tile (highest probability)
+    let bestNextTile: number | null = 0;
+    let mx = -1;
+    for (let i = 0; i < 9; i++) {
+      if (nextProb[i] > mx) {
+        mx = nextProb[i];
+        bestNextTile = i;
+      }
+    }
+
+    // Day 2: “RISK: reason” content
+    const riskReasons: string[] = [];
+    if (best) {
+      const missPenaltyHigh = Math.abs(best.missDelta) >= 4; // tune threshold
+      const lowHit = bestHit < 0.45;
+      const deckWeak = cardsRemaining <= 1;
+      const uncertain = !fishTypeLocked;
+
+      if (lowHit) riskReasons.push("low hit chance");
+      if (missPenaltyHigh) riskReasons.push("high miss penalty");
+      if (uncertain) riskReasons.push("uncertainty (fish type not locked)");
+      if (deckWeak) riskReasons.push("deck weak (1 card)");
+    }
+
+    return {
+      spell: best,
+      bestNextTile,
+      hitChance: best ? bestHit : 0,
+      ev: Number.isFinite(bestEV) ? bestEV : 0,
+      riskReasons,
+      coverageScore,
+      fishTypeBelief: belief,
+      nextTileProb: nextProb,
+    };
+  }, [belief, nextProb, selectedSpells, mana, catchValue, cardsRemaining, coverageScore]);
+
+  // Day 2: Withdraw warning logic
+  const withdrawWarning = useMemo(() => {
+    const fishTypeLocked =
+      Math.max(belief["1x1"], belief.PLUS, belief.X) >= 0.9;
+
+    const bestHitChance = recommendation.hitChance;
+    const bestEV = recommendation.ev;
+
+    const missWouldKillOrZeroOut =
+      recommendation.spell ? catchValue + recommendation.spell.missDelta <= 0 : false;
+
+    const deckCritical = cardsRemaining <= 1;
+
+    const triggers =
+      deckCritical &&
+      (bestHitChance < 0.45 ||
+        missWouldKillOrZeroOut ||
+        coverageScore < 0.45 ||
+        bestEV <= 0 ||
+        !fishTypeLocked);
+
+    const reasons: string[] = [];
+    if (!deckCritical) return { show: false, reasons: [] as string[] };
+
+    if (bestHitChance < 0.45) reasons.push("Best available hit chance is low");
+    if (missWouldKillOrZeroOut) reasons.push("A miss would drop Catch to 0 or below");
+    if (coverageScore < 0.45) reasons.push("Deck coverage is weak vs likely tiles");
+    if (bestEV <= 0) reasons.push("Expected value is not positive");
+    if (!fishTypeLocked) reasons.push("Fish type is not locked yet");
+
+    return { show: triggers, reasons };
+  }, [belief, recommendation, cardsRemaining, catchValue, coverageScore]);
+
+  // UI highlight set for next-move grid
+  const nextMoveHighlights = useMemo(() => {
+    // highlight top 3 probable tiles
+    const indexed = nextProb.map((p, i) => ({ p, i }));
+    indexed.sort((a, b) => b.p - a.p);
+    return new Set(indexed.slice(0, 3).map((x) => x.i));
+  }, [nextProb]);
+
+  const castHighlights = useMemo(() => {
+    const sp = recommendation.spell;
+    return sp ? new Set(sp.covers) : new Set<number>();
+  }, [recommendation.spell]);
+
+  function handleTileClick(t: number) {
+    setHistory((h) => [...h, t]);
+  }
+
+  function resetAll() {
+    setHistory([]);
+    setCatchValue(0);
+    setMana(6);
+    // keep deck/selected as is
+  }
+
+  function undo() {
+    setHistory((h) => h.slice(0, -1));
+  }
+
+  function redraw() {
+    // toy redraw: rotate the deck (replace with your real draw system)
+    const next = [...deck];
+    next.push(next.shift()!);
+    setDeck(next);
+    setSelectedInHand(new Set(next));
+  }
+
+  function toggleSpell(id: SpellId) {
+    setSelectedInHand((prev) => {
+      const nx = new Set(prev);
+      if (nx.has(id)) nx.delete(id);
+      else nx.add(id);
+      return nx;
+    });
+  }
+
+  const deckHealthTone =
+    cardsRemaining >= 3 ? "good" : cardsRemaining === 2 ? "warn" : "bad";
+
+  const coverageTone =
+    coverageScore >= 0.7 ? "good" : coverageScore >= 0.45 ? "warn" : "bad";
+
+  const mainRiskLabel =
+    recommendation.riskReasons.length > 0
+      ? `RISK: ${recommendation.riskReasons[0]}`
+      : "RISK: none";
+
+  return (
+    <div className="min-h-screen bg-[#061018] text-white">
+      <div className="mx-auto max-w-[1200px] px-6 py-8">
+        {/* Header bar */}
+        <div className="flex items-center justify-between rounded-3xl border border-cyan-300/15 bg-white/5 px-6 py-4 shadow-[0_0_60px_rgba(34,211,238,0.08)]">
+          <div className="flex items-center gap-4">
+            {/* Day 2: fish logo in the box */}
+            <FishLogo />
+
+            <div>
+              <div className="text-lg font-semibold tracking-wide">
+                GIGAVERSE FISH ASSIST
+              </div>
+              <div className="text-xs text-white/60">
+                Local-only predictor • no login • no wallet
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Chip>
+              Mana{" "}
+              <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-white/90">
+                {mana}
+              </span>
+            </Chip>
+            <Chip>
+              Catch{" "}
+              <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-white/90">
+                {catchValue}
+              </span>
+            </Chip>
+            <Chip>
+              Lvl 10+{" "}
+              <input
+                type="checkbox"
+                className="ml-2 accent-cyan-400"
+                checked={lvl10Plus}
+                onChange={(e) => setLvl10Plus(e.target.checked)}
+              />
+            </Chip>
+
+            <button
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:border-white/20"
+              onClick={undo}
+            >
+              Undo
+            </button>
+            <button
+              className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm hover:border-rose-300/50"
+              onClick={resetAll}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+
+        {/* Withdraw Warning (Day 2) */}
+        {withdrawWarning.show && (
+          <div className="mt-5 rounded-3xl border border-amber-400/25 bg-amber-500/10 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-amber-200">
+                  ⚠️ Consider WITHDRAW — deck is critical ({cardsRemaining} card
+                  left)
+                </div>
+                <ul className="mt-2 list-disc pl-5 text-xs text-white/75">
+                  {withdrawWarning.reasons.slice(0, 4).map((r, idx) => (
+                    <li key={idx}>{r}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:border-white/20"
+                  onClick={redraw}
+                >
+                  Redraw
+                </button>
+                <button
+                  className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-sm hover:border-amber-300/50"
+                  onClick={() => {
+                    // placeholder “withdraw”: just reset history + keep deck
+                    setHistory([]);
+                    setCatchValue(0);
+                  }}
+                >
+                  Withdraw
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Fish position */}
+          <Panel title="FISH POSITION">
+            <TileGrid selected={currentTile} onClick={handleTileClick} />
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Chip tone="neutral">History: {history.join(" → ") || "—"}</Chip>
+
+              {/* Day 2: Deck health + coverage warnings */}
+              <Chip tone={deckHealthTone as any}>
+                Deck:{" "}
+                {cardsRemaining >= 3
+                  ? "Strong"
+                  : cardsRemaining === 2
+                  ? "Weak"
+                  : "Critical"}{" "}
+                ({cardsRemaining})
+              </Chip>
+
+              <Chip tone={coverageTone as any}>
+                Coverage: {(coverageScore * 100).toFixed(0)}%
+              </Chip>
+            </div>
+
+            <div className="mt-4 text-xs leading-relaxed text-white/65">
+              Click the fish’s current tile each turn (0–8). The tool infers fish
+              type (1x1 / Plus / X) and recommends the best spell from your
+              selected hand.
+              <div className="mt-2">
+                Safety logic: if a miss would drop Catch to 0 or below, that
+                spell is rejected (unless everything is rejected).
+              </div>
+            </div>
+          </Panel>
+
+          {/* Detector + Prediction */}
+          <Panel title="FISH TYPE DETECTOR">
+            <div className="space-y-3">
+              {(["1x1", "PLUS", "X"] as FishType[]).map((k) => {
+                const v = recommendation.fishTypeBelief[k];
+                return (
+                  <div key={k} className="flex items-center gap-3">
+                    <div className="w-12 text-xs text-white/75">{k}</div>
+                    <div className="h-2 flex-1 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-300/70"
+                        style={{ width: `${(v * 100).toFixed(1)}%` }}
+                      />
+                    </div>
+                    <div className="w-14 text-right text-xs text-white/70">
+                      {formatPct(v)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 text-[12px] tracking-[0.2em] text-cyan-200/90 font-semibold">
+              NEXT MOVE PREDICTION
+            </div>
+            <div className="mt-3">
+              <TileGrid
+                selected={recommendation.bestNextTile}
+                highlights={nextMoveHighlights}
+                onClick={undefined}
+              />
+            </div>
+
+            {/* CAST */}
+            <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">▶</span>
+                  <div className="text-sm font-semibold">
+                    CAST:{" "}
+                    <span className="text-white/90">
+                      {recommendation.spell?.name ?? "—"}
+                    </span>
+                  </div>
+
+                  {/* Day 2: RISK reason content */}
+                  <span className="ml-2 rounded-full border border-amber-400/25 bg-amber-500/10 px-3 py-1 text-[11px] text-amber-200">
+                    {mainRiskLabel}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <Chip>Best next tile {recommendation.bestNextTile ?? "—"}</Chip>
+                  <Chip>Mana {mana}</Chip>
+                  <Chip>Catch {catchValue}</Chip>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <div className="text-xs text-white/70">
+                    Hit chance:{" "}
+                    <span className="text-cyan-200 font-semibold">
+                      {formatPct(recommendation.hitChance)}
+                    </span>
+                    {"  "}•{"  "}
+                    EV:{" "}
+                    <span className="text-cyan-200 font-semibold">
+                      {recommendation.ev.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs text-white/60">
+                    If HIT → Catch becomes{" "}
+                    <span className="text-white/85">
+                      {recommendation.spell
+                        ? catchValue + recommendation.spell.hitDelta
+                        : catchValue}
+                    </span>
+                    . If MISS → Catch becomes{" "}
+                    <span className="text-rose-200">
+                      {recommendation.spell
+                        ? catchValue + recommendation.spell.missDelta
+                        : catchValue}
+                    </span>
+                    .
+                  </div>
+
+                  {/* show extra risk reasons */}
+                  {recommendation.riskReasons.length > 1 && (
+                    <div className="mt-2 text-[11px] text-white/55">
+                      More: {recommendation.riskReasons.slice(1).join(" • ")}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <div className="text-xs text-white/70 font-semibold">
+                    Spell coverage preview
+                  </div>
+                  <div className="mt-2">
+                    <TileGrid
+                      selected={null}
+                      highlights={castHighlights}
+                      labelMode="none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Panel>
+        </div>
+
+        {/* Your spells */}
+        <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 px-6 py-6">
+          <div className="text-[12px] tracking-[0.2em] text-cyan-200/90 font-semibold">
+            YOUR SPELLS
+          </div>
+          <div className="mt-2 text-xs text-white/60">
+            Toggle spells in your hand. The engine selects the spell with best
+            expected value (EV) under safety + mana.
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            {deck.map((id) => {
+              const sp = ALL_SPELLS.find((s) => s.id === id)!;
+              const selected = selectedInHand.has(id);
+              const afford = sp.manaCost <= mana;
+              return (
+                <button
+                  key={id}
+                  onClick={() => toggleSpell(id)}
+                  className={[
+                    "rounded-2xl border px-4 py-3 text-left transition min-w-[200px]",
+                    selected
+                      ? "border-cyan-300/40 bg-cyan-500/10"
+                      : "border-white/10 bg-white/5 hover:border-white/20",
+                    !afford ? "opacity-60" : "",
+                  ].join(" ")}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-semibold">{sp.name}</div>
+                    <Chip tone={afford ? "neutral" : "warn"}>{sp.manaCost} mana</Chip>
+                  </div>
+                  <div className="mt-2 text-xs text-white/60">
+                    Covers: {sp.covers.join(", ")}
+                  </div>
+                  <div className="mt-1 text-xs text-white/55">
+                    Hit +{sp.hitDelta} • Miss {sp.missDelta}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:border-white/20"
+              onClick={() => setMana((m) => Math.max(0, m - 1))}
+            >
+              - Mana
+            </button>
+            <button
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:border-white/20"
+              onClick={() => setMana((m) => m + 1)}
+            >
+              + Mana
+            </button>
+            <button
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:border-white/20"
+              onClick={() => setCatchValue((c) => c + 1)}
+            >
+              + Catch
+            </button>
+            <button
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:border-white/20"
+              onClick={() => setCatchValue((c) => Math.max(0, c - 1))}
+            >
+              - Catch
+            </button>
+
+            <button
+              className="ml-auto rounded-2xl border border-amber-400/25 bg-amber-500/10 px-4 py-2 text-sm hover:border-amber-300/50"
+              onClick={redraw}
+            >
+              Redraw (toy)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
