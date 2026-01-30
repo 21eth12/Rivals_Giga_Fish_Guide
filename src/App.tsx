@@ -1,8 +1,18 @@
 export default function App() {
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui", color: "white" }}>
-      <h1>Gigaverse Fish Assist</h1>
-      <p>If you can see this, React is working ✅</p>
+    <div style={{
+      minHeight: "100vh",
+      background: "#020617",
+      color: "#67e8f9",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "28px",
+      fontWeight: "bold",
+      letterSpacing: "1px"
+    }}>
+      🎣 GigaVerse Fish Assist — React Running
     </div>
   );
 }
+
