@@ -1,432 +1,818 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Giga fish Terminal </title>
-    <style>
-        /* --- CORE TERMINAL STYLES --- */
-        body {
-            background-color: #050505;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 20px;
-            height: 100vh;
-            box-sizing: border-box;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        #terminal-output {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding-bottom: 20px;
-            scrollbar-width: none; 
-        }
-        #terminal-output::-webkit-scrollbar { 
-            display: none; 
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gigaverse Fish Assist</title>
+  <style>
+    :root{
+      --bg:#050a12;
+      --bg2:#071018;
+      --panel:#0b1724;
+      --panel2:#08121d;
+      --ink:#dffcff;
+      --muted:#8fb7c9;
+      --cyan:#00f0ff;
+      --cyan2:#7fdcff;
+      --warn:#ffb000;
+      --bad:#ff4d4d;
+      --good:#00ff99;
+      --glow: rgba(0,255,255,.22);
+      --glow2: rgba(0,255,255,.10);
+    }
 
-        #input-line {
-            display: flex;
-            border-top: 1px solid #333;
-            padding-top: 10px;
-            background: #050505;
-            align-items: center;
-        }
-        #prompt {
-            color: #00ff00;
-            margin-right: 10px;
-            font-weight: bold;
-        }
-        #cmd {
-            background: transparent;
-            border: none;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 16px;
-            flex-grow: 1;
-            outline: none;
-        } 
-        
-        /* --- UI ELEMENTS --- */
-        .result-card {
-            border: 1px solid #333;
-            background: #0a0a0a;
-            border-left: 4px solid #00ff00;
-            padding: 12px;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            width: fit-content;
-            min-width: 280px;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .result-header {
-            font-size: 12px;
-            color: #ffffff; 
-            font-weight: bold;
-            border-bottom: 1px solid #444;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      color:var(--ink);
+      background: radial-gradient(900px 500px at 20% 0%, rgba(0,240,255,.09), transparent 55%),
+                  radial-gradient(700px 400px at 90% 10%, rgba(0,240,255,.06), transparent 55%),
+                  linear-gradient(180deg, var(--bg), var(--bg2));
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
 
-        .stat-grid {
-            display: flex;
-            gap: 30px; 
-            margin-bottom: 12px;
-        }
+    .wrap{max-width:1100px;margin:0 auto;padding:18px;}
+    .topbar{
+      display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;
+      padding:14px 14px;
+      border:1px solid rgba(0,240,255,.35);
+      border-radius:16px;
+      background: linear-gradient(180deg, rgba(11,23,36,.92), rgba(7,16,24,.92));
+      box-shadow: 0 0 16px var(--glow);
+      position:sticky;top:0;z-index:10;
+      backdrop-filter: blur(6px);
+    }
+    .brand{
+      display:flex;gap:10px;align-items:center;min-width:260px;
+    }
+    .logo{
+      width:38px;height:38px;border-radius:12px;
+      border:1px solid rgba(0,240,255,.35);
+      box-shadow:0 0 14px var(--glow);
+      background:
+        radial-gradient(circle at 30% 30%, rgba(0,240,255,.28), transparent 55%),
+        linear-gradient(180deg, rgba(0,240,255,.10), rgba(0,0,0,.0));
+    }
+    .title{
+      font-weight:900; letter-spacing:.9px;
+      font-size:14px;
+      line-height:1.1;
+    }
+    .subtitle{
+      font-size:12px;color:var(--muted);margin-top:2px;
+    }
 
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .stat-label {
-            font-size: 11px;
-            color: #cccccc; 
-            margin-bottom: 2px;
-        }
-        
-        .stat-value {
-            font-size: 15px;
-            font-weight: bold;
-            color: #00ff00;
-        }
+    .controls{
+      display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;
+    }
+    .pill{
+      display:flex;gap:8px;align-items:center;
+      padding:8px 10px;
+      border:1px solid rgba(0,240,255,.28);
+      border-radius:14px;
+      background: linear-gradient(180deg, rgba(16,32,48,.78), rgba(8,18,29,.78));
+      box-shadow: 0 0 10px var(--glow2);
+      font-size:12px;color:var(--muted);
+      user-select:none;
+    }
+    .pill b{color:var(--ink)}
+    .pill input[type="number"]{
+      width:64px;
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px solid rgba(0,240,255,.28);
+      background: rgba(0,0,0,.25);
+      color:var(--ink);
+      outline:none;
+    }
+    .pill input[type="checkbox"]{accent-color: var(--cyan);}
+    .btn{
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(0,240,255,.35);
+      background: linear-gradient(180deg, rgba(0,240,255,.12), rgba(0,0,0,.08));
+      color:var(--ink);
+      box-shadow: 0 0 14px var(--glow2);
+      font-weight:800;
+    }
+    .btn:hover{box-shadow:0 0 18px var(--glow);border-color:rgba(0,240,255,.6)}
+    .btn.danger{border-color: rgba(255,77,77,.55); box-shadow: 0 0 12px rgba(255,77,77,.20);}
+    .btn.danger:hover{box-shadow:0 0 18px rgba(255,77,77,.30);}
+    .btn.ghost{background: rgba(0,0,0,.18);}
 
-        .action-box {
-            background: #0d1a0d;
-            border: 1px solid #004400;
-            padding: 10px;
-            text-align: center;
-            font-weight: bold;
-            color: #00ff00;
-            text-transform: uppercase;
-            border-radius: 4px;
-            letter-spacing: 1px;
-        }
-        
-        /* --- VISUALS --- */
-        .radar-container {
-            margin-top: 5px;
-            margin-bottom: 15px;
-            padding: 10px;
-            display: inline-block;
-            border: 1px solid #222;
-            background: #0a0a0a;
-            border-radius: 4px;
-        }
-        .radar-label {
-            font-size: 11px;
-            color: #aaaaaa; 
-            margin-bottom: 8px;
-            text-align: center;
-            letter-spacing: 1px;
-        }
-        .radar-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 40px);
-            grid-template-rows: repeat(3, 40px);
-            gap: 6px;
-        }
-        .cell {
-            width: 40px;
-            height: 40px;
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 2px;
-            transition: all 0.2s ease;
-        }
-        
-        .cell.target { border: 2px solid #00ff00; box-shadow: inset 0 0 5px rgba(0,255,0,0.2); }
-        .cell.possible { border: 2px dashed #ffff00; opacity: 0.8; } 
-        .cell.hit { background-color: #00ff00; border: 2px solid #00ff00; box-shadow: 0 0 15px rgba(0,255,0,0.6); }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr;}
+      .brand{min-width:auto}
+    }
 
-        /* --- CLICKABLE KEYPAD --- */
-        #keypad-container {
-            position: fixed;
-            bottom: 60px;
-            right: 20px;
-            background: #0a0a0a;
-            border: 1px solid #333;
-            padding: 10px;
-            border-radius: 8px;
-            z-index: 100;
-        }
-        .keypad-label {
-            font-size: 10px;
-            color: #666;
-            text-align: center;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-        }
-        .keypad-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 50px);
-            gap: 5px;
-        }
-        .key-btn {
-            height: 50px;
-            background: #111;
-            border: 1px solid #00ff00;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.1s;
-        }
-        .key-btn:active {
-            background: #00ff00;
-            color: #000;
-        }
-        .key-btn:hover {
-            background: #0d1a0d;
-        }
+    .card{
+      border:1px solid rgba(0,240,255,.28);
+      border-radius:16px;
+      background: linear-gradient(180deg, rgba(11,23,36,.85), rgba(7,16,24,.85));
+      box-shadow: 0 0 14px var(--glow2);
+      padding:14px;
+    }
+    .card h3{
+      margin:0 0 10px 0;
+      font-size:13px;
+      letter-spacing:.8px;
+      color:var(--cyan2);
+      text-transform:uppercase;
+    }
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .hint{font-size:12px;color:var(--muted);line-height:1.4}
 
-        @media (max-width: 600px) {
-            #keypad-container {
-                position: relative;
-                bottom: auto;
-                right: auto;
-                margin-top: 20px;
-                width: fit-content;
-            }
-        }
+    .boardWrap{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+    .board{
+      display:grid;
+      grid-template-columns: repeat(3, 78px);
+      gap:10px;
+      padding:10px;
+      border-radius:16px;
+      border:1px solid rgba(0,240,255,.25);
+      background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.08));
+      box-shadow: inset 0 0 18px rgba(0,0,0,.55);
+    }
+    .cell{
+      width:78px;height:78px;
+      border-radius:14px;
+      border:2px solid rgba(0,240,255,.22);
+      background:
+        radial-gradient(circle at 40% 35%, rgba(0,240,255,.09), transparent 55%),
+        linear-gradient(180deg, rgba(16,32,48,.70), rgba(8,18,29,.70));
+      cursor:pointer;
+      position:relative;
+      overflow:hidden;
+      user-select:none;
+    }
+    .cell:hover{border-color: rgba(0,240,255,.62); box-shadow: 0 0 14px var(--glow);}
+    .cell .idx{
+      position:absolute;top:8px;left:10px;
+      font-size:12px;color:rgba(223,252,255,.55);
+      font-weight:800;
+    }
+    .cell .heat{
+      position:absolute;inset:0;
+      background: rgba(0,240,255,.0);
+      transition: background .12s ease;
+    }
+    .cell.current{
+      border-color: rgba(0,255,153,.75);
+      box-shadow: 0 0 18px rgba(0,255,153,.18);
+    }
+    .cell.current::after{
+      content:"";
+      position:absolute;inset:-18px;
+      background: radial-gradient(circle at 50% 50%, rgba(0,255,153,.18), transparent 58%);
+    }
 
-    </style>
+    .history{
+      display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+      margin-top:10px;
+      font-size:12px;color:var(--muted);
+    }
+    .chip{
+      padding:6px 9px;border-radius:999px;
+      border:1px solid rgba(0,240,255,.20);
+      background: rgba(0,0,0,.18);
+      color:var(--ink);
+    }
+
+    .bars{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+    .barRow{display:flex;align-items:center;gap:10px}
+    .barName{width:70px;color:var(--muted);font-size:12px}
+    .barOuter{
+      flex:1;height:12px;border-radius:999px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(0,240,255,.20);
+      overflow:hidden;
+    }
+    .barInner{height:100%;width:0%; background: rgba(0,240,255,.42);}
+    .barPct{width:52px;text-align:right;color:var(--ink);font-size:12px}
+
+    .spells{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+    }
+    @media (max-width: 980px){
+      .spells{grid-template-columns: repeat(2, minmax(0, 1fr));}
+    }
+    .spell{
+      border-radius:16px;
+      border:1px solid rgba(0,240,255,.22);
+      background: linear-gradient(180deg, rgba(8,18,29,.85), rgba(0,0,0,.12));
+      box-shadow: 0 0 10px var(--glow2);
+      padding:10px;
+      cursor:pointer;
+      user-select:none;
+      position:relative;
+    }
+    .spell:hover{border-color: rgba(0,240,255,.6); box-shadow:0 0 16px var(--glow);}
+    .spell.selected{
+      border-color: rgba(0,255,153,.70);
+      box-shadow:0 0 18px rgba(0,255,153,.18);
+    }
+    .spellTop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
+    .spellName{font-weight:900;font-size:12px;letter-spacing:.6px;color:var(--cyan2);}
+    .badge{
+      font-size:11px;color:var(--muted);
+      border:1px solid rgba(0,240,255,.20);
+      padding:4px 8px;border-radius:999px;background:rgba(0,0,0,.16);
+    }
+    .miniGrid{
+      display:grid;
+      grid-template-columns: repeat(3, 16px);
+      gap:5px;
+      justify-content:flex-start;
+      margin:6px 0 10px 0;
+    }
+    .miniCell{
+      width:16px;height:16px;border-radius:5px;
+      border:1px solid rgba(0,240,255,.20);
+      background: rgba(255,255,255,.03);
+    }
+    .miniCell.on{border-color: rgba(0,240,255,.65); box-shadow:0 0 8px rgba(0,240,255,.20);}
+    .miniCell.bonus{border-color: rgba(255,176,0,.75); box-shadow:0 0 10px rgba(255,176,0,.18);}
+    .spellStats{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .spellStats b{color:var(--ink)}
+
+    .rec{
+      display:flex;flex-direction:column;gap:10px;
+    }
+    .recMain{
+      padding:12px 12px;
+      border-radius:16px;
+      border:1px solid rgba(0,240,255,.28);
+      background: linear-gradient(180deg, rgba(0,240,255,.10), rgba(0,0,0,.10));
+      box-shadow: 0 0 14px var(--glow2);
+      font-weight:900;
+      letter-spacing:.6px;
+    }
+    .recMain .tag{
+      display:inline-block;margin-left:8px;
+      font-size:11px;font-weight:900;
+      padding:4px 8px;border-radius:999px;
+      border:1px solid rgba(0,240,255,.20);
+      background: rgba(0,0,0,.16);
+      color: var(--cyan2);
+    }
+    .kv{
+      display:flex;gap:10px;flex-wrap:wrap;
+      font-size:12px;color:var(--muted)
+    }
+    .kv .k{
+      padding:8px 10px;border-radius:14px;
+      border:1px solid rgba(0,240,255,.20);
+      background: rgba(0,0,0,.16);
+    }
+    .kv b{color:var(--ink)}
+    .why{
+      color:var(--muted); font-size:12px; line-height:1.45;
+      padding:10px 12px;
+      border-radius:16px;
+      border:1px solid rgba(0,240,255,.18);
+      background: rgba(0,0,0,.14);
+    }
+
+    .footerNote{
+      margin-top:12px;
+      font-size:12px;
+      color: var(--muted);
+      opacity:.9;
+    }
+    .smalllink{color:var(--cyan2);text-decoration:none}
+    .smalllink:hover{text-decoration:underline}
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">GIGAVERSE FISH ASSIST</div>
+          <div class="subtitle">Local-only predictor • no login • no wallet</div>
+        </div>
+      </div>
 
-    <div id="terminal-output">
-        <div id="header-block">
-            <div style="font-size: 16px; font-weight: 900; color: #00ff00; margin-bottom: 10px; letter-spacing: 1px;">
-                GIGA FISH TOOL | Initializing..... lets Fishh
-            </div>
-            <div style="color: orange; font-weight: bold;">
-                [!] GIGAMIND: Input fish location (0-8)
-            </div>
-            <br>
-        </div>
-        </div>
-
-    <div id="keypad-container">
-        <div class="keypad-label">Quick Input</div>
-        <div class="keypad-grid">
-            <button class="key-btn" onclick="sendInput('0')">0</button>
-            <button class="key-btn" onclick="sendInput('1')">1</button>
-            <button class="key-btn" onclick="sendInput('2')">2</button>
-            <button class="key-btn" onclick="sendInput('3')">3</button>
-            <button class="key-btn" onclick="sendInput('4')">4</button>
-            <button class="key-btn" onclick="sendInput('5')">5</button>
-            <button class="key-btn" onclick="sendInput('6')">6</button>
-            <button class="key-btn" onclick="sendInput('7')">7</button>
-            <button class="key-btn" onclick="sendInput('8')">8</button>
-        </div>
-        <button onclick="sendInput('clear')" style="width: 100%; margin-top: 5px; background: #220000; color: red; border: 1px solid red; padding: 5px; cursor: pointer; font-family: inherit;">CLEAR</button>
+      <div class="controls">
+        <div class="pill">Mana <input id="mana" type="number" min="0" max="99" value="5"></div>
+        <div class="pill">Catch <input id="catch" type="number" min="0" max="999" value="12"></div>
+        <label class="pill" title="If level 10+, fish may switch patterns sometimes">
+          Lvl 10+ <input id="lvl10" type="checkbox">
+        </label>
+        <button class="btn ghost" id="clearMove">Undo</button>
+        <button class="btn danger" id="resetAll">Reset</button>
+      </div>
     </div>
 
-    <div id="input-line">
-        <span id="prompt">root@gigaRival:~$</span>
-        <input type="text" id="cmd" autofocus autocomplete="off">
+    <div class="grid">
+      <div class="card">
+        <h3>Fish Position</h3>
+        <div class="boardWrap">
+          <div>
+            <div class="board" id="inputBoard"></div>
+            <div class="history" id="history"></div>
+          </div>
+
+          <div style="min-width:260px;flex:1">
+            <div class="hint">
+              Click the fish’s <b>current tile</b> each turn (0–8).<br>
+              The tool will infer fish type (1x1 / Plus / X) and recommend the best spell from your selected hand.
+            </div>
+            <div style="height:10px"></div>
+            <div class="hint">
+              Safety logic: if a miss would drop catch to <b>0 or below</b>, that spell gets rejected.
+            </div>
+            <div class="footerNote">
+              Tip: Pick spells in <b>Your Spells</b> below — only selected spells are considered.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Fish Type Detector</h3>
+        <div class="bars" id="bars"></div>
+
+        <div style="height:14px"></div>
+
+        <h3>Next Move Prediction</h3>
+        <div class="board" id="heatBoard"></div>
+
+        <div style="height:12px"></div>
+
+        <div class="rec" id="recBox">
+          <div class="recMain" id="recMain">Click a tile to begin <span class="tag">READY</span></div>
+          <div class="kv" id="recKv"></div>
+          <div class="why" id="recWhy">Once you input at least 2 positions, probabilities improve a lot.</div>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column: 1 / -1;">
+        <h3>Your Spells</h3>
+        <div class="hint" style="margin-bottom:10px">
+          Click to toggle spells in your hand. The engine selects the spell with best expected value (EV) under safety + mana.
+        </div>
+        <div class="spells" id="spellPicker"></div>
+
+        <div class="footerNote">
+          Want to keep it even simpler? Use only 3 spells at first (Plus, Corners, one Row/Col), then expand.
+        </div>
+      </div>
     </div>
+
+    <div class="footerNote">
+      If you want, I can help you add: spell import presets, “redraw” EV, and a cleaner mobile layout.  
+      <span style="opacity:.7">This build is designed to be dropped into GitHub Pages as a single file.</span>
+    </div>
+  </div>
 
 <script>
-    class ApexFish {
-        constructor() {
-            this.adj = {
-                0: new Set([0, 1, 3]), 1: new Set([0, 1, 2, 4]), 2: new Set([1, 2, 5]),
-                3: new Set([0, 3, 4, 6]), 4: new Set([1, 3, 4, 5, 7]), 
-                5: new Set([2, 4, 5, 8]), 6: new Set([3, 6, 7]), 7: new Set([4, 6, 7, 8]), 8: new Set([5, 7, 8])
-            };
-            this.history = [];
-            
-            this.CROSS = new Set([1, 3, 4, 5, 7]);
-            this.CLUSTERS = {
-                0: new Set([0, 1, 3, 4]), 2: new Set([1, 2, 4, 5]),
-                6: new Set([3, 4, 6, 7]), 8: new Set([4, 5, 7, 8])
-            };
-            this.ROWS = {0: new Set([0, 1, 2]), 3: new Set([3, 4, 5]), 6: new Set([6, 7, 8])};
-        }
+/** =========================
+ *  0..8 board mapping:
+ *  0 1 2
+ *  3 4 5
+ *  6 7 8
+ *  ========================= */
 
-        print(text, color = "#00ff00") {
-            const output = document.getElementById('terminal-output');
-            const line = document.createElement('div');
-            line.style.color = color;
-            line.innerHTML = text; 
-            output.appendChild(line);
-            output.scrollTop = output.scrollHeight;
-        }
+const TYPES = ["ONE","PLUS","X"];
 
-        printRaw(html) {
-            const output = document.getElementById('terminal-output');
-            const line = document.createElement('div');
-            line.innerHTML = html;
-            output.appendChild(line);
-            output.scrollTop = output.scrollHeight;
-        }
-        
-        // --- FIXED CLEAR FUNCTION ---
-        // This now matches the text in the HTML Body above
-        clearScreen() {
-            const output = document.getElementById('terminal-output');
-            output.innerHTML = `
-            <div id="header-block">
-                <div style="font-size: 16px; font-weight: 900; color: #00ff00; margin-bottom: 10px; letter-spacing: 1px;">
-                    GIGA FISH TOOL | Initializing..... lets Fishh
-                </div>
-                <div style="color: orange; font-weight: bold;">
-                    [!] GIGAMIND: Input fish location (0-8)
-                </div>
-                <br>
-            </div>`;
-            this.history = []; 
-        }
+// --- Movement models (NO "stay", fish always moves) ---
+function orthNeighbors(i){
+  const r = Math.floor(i/3), c = i%3;
+  const out = [];
+  if (r>0) out.push(i-3);
+  if (r<2) out.push(i+3);
+  if (c>0) out.push(i-1);
+  if (c<2) out.push(i+1);
+  return out;
+}
+function diagNeighbors(i){
+  const r = Math.floor(i/3), c = i%3;
+  const out = [];
+  const deltas = [[-1,-1],[-1,1],[1,-1],[1,1]];
+  for (const [dr,dc] of deltas){
+    const nr=r+dr, nc=c+dc;
+    if (nr>=0 && nr<3 && nc>=0 && nc<3) out.push(nr*3+nc);
+  }
+  return out;
+}
+function moves(type, pos){
+  if (type==="ONE") return new Set(orthNeighbors(pos));
+  if (type==="PLUS"){
+    const plusNodes = new Set([1,3,5,7]);
+    if (!plusNodes.has(pos)) return new Set();
+    return new Set([1,3,5,7].filter(x => x !== pos));
+  }
+  if (type==="X") return new Set(diagNeighbors(pos));
+  return new Set();
+}
+function normalizeBelief(b){
+  const s = Object.values(b).reduce((a,x)=>a+x,0) || 1;
+  for (const k of Object.keys(b)) b[k] /= s;
+  return b;
+}
+function updateBelief(belief, prev, cur, level10Plus){
+  // level10Plus -> allow small chance of "switching patterns"
+  const eps = 1e-8;
+  const switchProb = level10Plus ? 0.08 : 0.0; // tune if needed
+  const nb = {...belief};
+  for (const t of TYPES){
+    const allowed = moves(t, prev);
+    const ok = allowed.has(cur);
+    nb[t] = belief[t] * (ok ? 1.0 : (switchProb || eps));
+  }
+  return normalizeBelief(nb);
+}
+function predictNextDist(belief, cur){
+  const dist = Array(9).fill(0);
+  for (const t of TYPES){
+    const m = [...moves(t, cur)];
+    if (m.length === 0) continue;
+    const pEach = 1 / m.length;
+    for (const j of m) dist[j] += belief[t] * pEach;
+  }
+  // dist sums to 1 (approximately)
+  return dist;
+}
+function fmtPct(x){
+  return (x*100).toFixed(1) + "%";
+}
 
-        intersect(setA, setB) {
-            return new Set([...setA].filter(x => setB.has(x)));
-        }
+// --- Spell library (fixed orientation) ---
+const SPELLS = [
+  { id:"row_top", name:"Top Row", mana:1, hit:5, miss:-3, tiles:[0,1,2] },
+  { id:"row_mid", name:"Mid Row", mana:1, hit:5, miss:-3, tiles:[3,4,5] },
+  { id:"row_bot", name:"Bottom Row", mana:1, hit:5, miss:-3, tiles:[6,7,8] },
+  { id:"col_left", name:"Left Col", mana:1, hit:5, miss:-3, tiles:[0,3,6] },
+  { id:"col_mid", name:"Mid Col", mana:1, hit:5, miss:-3, tiles:[1,4,7] },
+  { id:"col_right", name:"Right Col", mana:1, hit:5, miss:-3, tiles:[2,5,8] },
 
-        drawRadar(targetCells, possibleCells) {
-            let html = `
-            <div class="radar-container">
-                <div class="radar-label">TARGETING HUD</div>
-                <div class="radar-grid">
-            `;
-            for (let i = 0; i < 9; i++) {
-                let classes = 'cell';
-                if (targetCells.has(i) && possibleCells.has(i)) classes += ' hit';
-                else if (targetCells.has(i)) classes += ' target';
-                else if (possibleCells.has(i)) classes += ' possible';
-                html += `<div class="${classes}"></div>`;
-            }
-            html += `</div></div>`;
-            this.printRaw(html);
-        }
+  { id:"corners", name:"Corners", mana:1, hit:6, miss:-3, tiles:[0,2,6,8] },
+  // Plus spell: arms only (no center) (matches PLUS fish tiles)
+  { id:"plus_arms", name:"Plus Spell", mana:1, hit:5, miss:-5, tiles:[1,3,5,7] },
 
-        solve(pos) {
-            if (this.history.length > 0) {
-                const lastPos = this.history[this.history.length - 1];
-                if (!this.adj[lastPos].has(pos)) {
-                    this.print(`[!] IMPOSSIBLE MOVE (${lastPos}->${pos}) - RESETTING...`, "orange");
-                    this.history = [];
-                }
-            }
-            this.history.push(pos);
-            if (this.history.length > 4) this.history.shift();
+  // Full board (safe coverage, low upside)
+  { id:"full_board", name:"Full Board", mana:1, hit:2, miss:-4, tiles:[0,1,2,3,4,5,6,7,8] },
 
-            const possible = new Set(this.adj[pos]);
-            let volatility = "LOW";
+  // Center single (high risk/high reward)
+  { id:"center", name:"Center (Single)", mana:1, hit:10, miss:-5, tiles:[4], bonusTiles:[4], bonus:0 },
 
-            if (this.history.length >= 2) {
-                const prevPos = this.history[this.history.length - 2];
-                if (possible.has(prevPos) && this.history.length > 2) {
-                    volatility = (this.history[this.history.length - 1] !== this.history[this.history.length - 3]) 
-                        ? "HIGH" : "MODERATE";
-                }
-            }
+  // Bonus examples (3-in-row + one yellow tile). If you want, adjust bonusTiles later.
+  { id:"top_bonus_leftmid", name:"Top Row + Bonus", mana:1, hit:5, bonus:8, miss:-3, tiles:[0,1,2,3], bonusTiles:[3] },
+  { id:"bot_bonus_rightmid", name:"Bottom Row + Bonus", mana:1, hit:5, bonus:8, miss:-3, tiles:[6,7,8,5], bonusTiles:[5] },
+];
 
-            let spellName = "";
-            let spellTiles = new Set();
+// --- App state ---
+const state = {
+  history: [],
+  belief: { ONE: 1/3, PLUS: 1/3, X: 1/3 },
+  selectedSpellIds: new Set([
+    "plus_arms","corners","row_mid","col_mid" // safe default pack
+  ]),
+};
 
-            if (pos === 4) {
-                spellName = "CROSS SPELL";
-                spellTiles = this.CROSS;
-            } else if (this.CLUSTERS[pos]) {
-                spellName = "2x2 CLUSTER";
-                spellTiles = this.CLUSTERS[pos];
-            } else {
-                let rowStart = Math.floor(pos / 3) * 3;
-                spellName = "3x1 HORIZONTAL";
-                spellTiles = this.ROWS[rowStart];
-            }
+// --- DOM ---
+const inputBoard = document.getElementById("inputBoard");
+const heatBoard  = document.getElementById("heatBoard");
+const historyEl  = document.getElementById("history");
+const barsEl     = document.getElementById("bars");
+const spellPicker= document.getElementById("spellPicker");
 
-            const hits = this.intersect(spellTiles, possible).size;
-            let baseConf = (hits / possible.size) * 100;
-            let finalConf = volatility === "LOW" ? baseConf : baseConf - 10;
+const manaEl = document.getElementById("mana");
+const catchEl = document.getElementById("catch");
+const lvl10El = document.getElementById("lvl10");
 
-            let recommendation = `CAST ${spellName}`;
+const recMain = document.getElementById("recMain");
+const recWhy  = document.getElementById("recWhy");
+const recKv   = document.getElementById("recKv");
 
-            const resultHtml = `
-            <div class="result-card">
-                <div class="result-header">ANALYSIS: POSITION ${pos}</div>
-                <div class="stat-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">VOLATILITY</span>
-                        <span class="stat-value" style="color: ${volatility === 'HIGH' ? 'orange' : '#00ff00'}">${volatility}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">CONFIDENCE</span>
-                        <span class="stat-value">${finalConf.toFixed(1)}%</span>
-                    </div>
-                </div>
-                <div class="action-box">
-                    ${recommendation}
-                </div>
-            </div>
-            `;
-            
-            this.printRaw(resultHtml);
-            this.drawRadar(spellTiles, possible);
-        }
-    }
+document.getElementById("resetAll").addEventListener("click", () => resetAll());
+document.getElementById("clearMove").addEventListener("click", () => undoMove());
 
-    const bot = new ApexFish();
-    const input = document.getElementById('cmd');
+// --- Build boards ---
+function makeCell(i, onClick){
+  const d = document.createElement("div");
+  d.className = "cell";
+  d.setAttribute("data-idx", String(i));
+  d.innerHTML = `<div class="idx">${i}</div><div class="heat"></div>`;
+  d.addEventListener("click", () => onClick(i));
+  return d;
+}
+const inputCells = [];
+const heatCells = [];
+for (let i=0;i<9;i++){
+  const c1 = makeCell(i, (idx)=> addMove(idx));
+  const c2 = makeCell(i, ()=>{});
+  inputBoard.appendChild(c1);
+  heatBoard.appendChild(c2);
+  inputCells.push(c1);
+  heatCells.push(c2);
+}
 
-    function sendInput(val) {
-        if (val !== 'clear') {
-            bot.printRaw(`<div style="color: #666; margin-top: 5px;">> ${val}</div>`);
-        }
-        
-        if (val === 'clear') {
-            bot.clearScreen();
-        } else if (!isNaN(parseInt(val)) && parseInt(val) >= 0 && parseInt(val) <= 8) {
-            bot.solve(parseInt(val));
-        }
-        input.focus();
-    }
+// --- Spell picker UI ---
+function miniGridHTML(tiles, bonusTiles){
+  const tileSet = new Set(tiles);
+  const bonusSet = new Set(bonusTiles || []);
+  const wrap = document.createElement("div");
+  wrap.className = "miniGrid";
+  for (let i=0;i<9;i++){
+    const m = document.createElement("div");
+    m.className = "miniCell";
+    if (tileSet.has(i)) m.classList.add("on");
+    if (bonusSet.has(i)) m.classList.add("bonus");
+    wrap.appendChild(m);
+  }
+  return wrap;
+}
+function renderSpells(){
+  spellPicker.innerHTML = "";
+  for (const sp of SPELLS){
+    const card = document.createElement("div");
+    card.className = "spell";
+    if (state.selectedSpellIds.has(sp.id)) card.classList.add("selected");
 
-    input.addEventListener('keydown', function(event) {
-        if (event.key === 'Enter') {
-            const val = input.value.trim();
-            input.value = '';
-            
-            if (val === '') return;
-            
-            if (val.toLowerCase() === 'reset') {
-                bot.history = [];
-                bot.print("History Cleared.", "orange");
-                return;
-            }
-            if (val.toLowerCase() === 'clear') {
-                bot.clearScreen();
-                return;
-            }
-            if (val.toLowerCase() === 'exit') {
-                bot.print("Session Terminated.", "red");
-                return;
-            }
-            
-            if (!isNaN(parseInt(val)) && parseInt(val) >= 0 && parseInt(val) <= 8) {
-                bot.printRaw(`<div style="color: #666; margin-top: 5px;">> ${val}</div>`);
-                bot.solve(parseInt(val));
-            } else {
-                bot.print("[!] Input fish location (0-8) or click grid", "yellow");
-            }
-        }
+    const top = document.createElement("div");
+    top.className = "spellTop";
+    top.innerHTML = `<div class="spellName">${sp.name}</div>
+                     <div class="badge">Mana ${sp.mana}</div>`;
+    card.appendChild(top);
+
+    card.appendChild(miniGridHTML(sp.tiles, sp.bonusTiles));
+
+    const stats = document.createElement("div");
+    stats.className = "spellStats";
+    const bonusText = (typeof sp.bonus === "number" && sp.bonusTiles && sp.bonusTiles.length)
+      ? ` • Bonus <b>+${sp.bonus}</b>`
+      : "";
+    stats.innerHTML = `Hit <b>+${sp.hit}</b> • Miss <b>${sp.miss}</b>${bonusText}`;
+    card.appendChild(stats);
+
+    card.addEventListener("click", () => {
+      if (state.selectedSpellIds.has(sp.id)) state.selectedSpellIds.delete(sp.id);
+      else state.selectedSpellIds.add(sp.id);
+      renderSpells();
+      recompute();
     });
 
-    document.addEventListener('click', () => input.focus());
+    spellPicker.appendChild(card);
+  }
+}
+renderSpells();
+
+// --- Bars UI ---
+function setBar(container, name, value01){
+  const row = document.createElement("div");
+  row.className = "barRow";
+  row.innerHTML = `
+    <div class="barName">${name}</div>
+    <div class="barOuter"><div class="barInner"></div></div>
+    <div class="barPct">${fmtPct(value01)}</div>
+  `;
+  row.querySelector(".barInner").style.width = `${Math.max(0,Math.min(1,value01))*100}%`;
+  return row;
+}
+function renderBars(){
+  barsEl.innerHTML = "";
+  barsEl.appendChild(setBar(barsEl, "1x1", state.belief.ONE));
+  barsEl.appendChild(setBar(barsEl, "PLUS", state.belief.PLUS));
+  barsEl.appendChild(setBar(barsEl, "X", state.belief.X));
+}
+
+// --- History UI ---
+function renderHistory(){
+  historyEl.innerHTML = "";
+  const label = document.createElement("span");
+  label.textContent = "History:";
+  label.style.color = "var(--muted)";
+  historyEl.appendChild(label);
+
+  if (state.history.length === 0){
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = "(none)";
+    historyEl.appendChild(chip);
+    return;
+  }
+  for (const p of state.history.slice(-8)){
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = String(p);
+    historyEl.appendChild(chip);
+  }
+}
+
+// --- Heatmap UI ---
+function renderHeat(dist){
+  // dist: length 9, sums ~1
+  const max = Math.max(...dist, 0.000001);
+  for (let i=0;i<9;i++){
+    const cell = heatCells[i];
+    const heat = cell.querySelector(".heat");
+    const x = dist[i]/max; // 0..1
+    // cyan intensity; keep subtle
+    heat.style.background = `rgba(0,240,255,${(0.08 + 0.40*x).toFixed(3)})`;
+  }
+}
+
+// --- Input board highlight ---
+function renderCurrent(){
+  for (let i=0;i<9;i++) inputCells[i].classList.remove("current");
+  const last = state.history[state.history.length-1];
+  if (typeof last === "number") inputCells[last].classList.add("current");
+}
+
+// --- Recommendation engine ---
+function pHitForSpell(sp, dist){
+  let p = 0;
+  for (const t of sp.tiles) p += dist[t] || 0;
+  return p;
+}
+function bonusExpected(sp, dist){
+  if (!sp.bonusTiles || !sp.bonus) return 0;
+  let p = 0;
+  for (const t of sp.bonusTiles) p += dist[t] || 0;
+  return p * sp.bonus;
+}
+function expectedValue(sp, dist){
+  const p = pHitForSpell(sp, dist);
+  return (p * sp.hit) + ((1-p) * sp.miss) + bonusExpected(sp, dist);
+}
+
+// safety check: if miss could end run, reject
+function isSpellSafe(sp, curCatch){
+  const afterMiss = curCatch + sp.miss; // miss is negative
+  return afterMiss > 0;
+}
+
+// choose best spell among selected ones, within mana and safety
+function chooseBest(dist){
+  const curMana = Number(manaEl.value || 0);
+  const curCatch = Number(catchEl.value || 0);
+
+  const candidates = SPELLS.filter(s => state.selectedSpellIds.has(s.id));
+
+  if (candidates.length === 0){
+    return { kind:"NONE", msg:"Select at least 1 spell." };
+  }
+
+  // filter by mana
+  const affordable = candidates.filter(s => s.mana <= curMana);
+  if (affordable.length === 0){
+    return { kind:"NONE", msg:"No spells affordable (mana too low)." };
+  }
+
+  // safety-first: prefer safe spells; if none safe, still show "least lethal" option
+  const safe = affordable.filter(s => isSpellSafe(s, curCatch));
+
+  const pool = safe.length ? safe : affordable;
+
+  let best = null;
+  for (const sp of pool){
+    const p = pHitForSpell(sp, dist);
+    const ev = expectedValue(sp, dist);
+
+    // gentle penalty for spending mana when low
+    const manaPenalty = (curMana <= 2) ? (0.15 * sp.mana) : 0;
+    const score = ev - manaPenalty;
+
+    if (!best || score > best.score){
+      best = { sp, p, ev, score, safe: isSpellSafe(sp, curCatch) };
+    }
+  }
+
+  if (!best){
+    return { kind:"NONE", msg:"No candidate spells." };
+  }
+
+  return { kind:"SPELL", ...best };
+}
+
+function updateRecUI(result, dist){
+  const curMana = Number(manaEl.value || 0);
+  const curCatch = Number(catchEl.value || 0);
+
+  // info pills
+  recKv.innerHTML = "";
+  const kv = (label, val) => {
+    const d = document.createElement("div");
+    d.className = "k";
+    d.innerHTML = `${label} <b>${val}</b>`;
+    return d;
+  };
+
+  // show predicted next tile (argmax)
+  let argmax = 0;
+  for (let i=1;i<9;i++) if (dist[i] > dist[argmax]) argmax = i;
+
+  recKv.appendChild(kv("Best next tile", `${argmax} (${fmtPct(dist[argmax])})`));
+  recKv.appendChild(kv("Mana", String(curMana)));
+  recKv.appendChild(kv("Catch", String(curCatch)));
+
+  if (result.kind !== "SPELL"){
+    recMain.innerHTML = `${result.msg} <span class="tag">CHECK</span>`;
+    recWhy.textContent = "Pick spells and input fish tiles to get recommendations.";
+    return;
+  }
+
+  const sp = result.sp;
+  const p = result.p;
+  const ev = result.ev;
+
+  const safetyTag = result.safe ? `<span class="tag">SAFE</span>` : `<span class="tag" style="color:var(--warn)">RISK</span>`;
+  recMain.innerHTML = `▶ CAST: ${sp.name} ${safetyTag}`;
+
+  const afterMiss = curCatch + sp.miss;
+  const afterHit = curCatch + sp.hit;
+
+  const plusReason = state.belief.PLUS > 0.55 && sp.id === "plus_arms"
+    ? "High PLUS probability → Plus Spell covers all PLUS moves."
+    : "";
+  const xReason = state.belief.X > 0.55 && sp.id === "corners"
+    ? "High X probability → Corners often aligns with diagonal/corner landings."
+    : "";
+  const oneReason = state.belief.ONE > 0.55 && (sp.id.startsWith("row_") || sp.id.startsWith("col_"))
+    ? "High 1x1 probability → Rows/Cols are strong coverage vs orthogonal moves."
+    : "";
+
+  const extra = [plusReason, xReason, oneReason].filter(Boolean).join(" ");
+
+  recWhy.innerHTML = `
+    Hit chance: <b>${fmtPct(p)}</b> • EV: <b>${ev.toFixed(2)}</b><br>
+    If HIT → Catch becomes <b>${afterHit}</b>. If MISS → Catch becomes <b style="color:${afterMiss>0?'var(--ink)':'var(--bad)'}">${afterMiss}</b>.<br>
+    ${extra || "Recommendation maximizes expected value under current fish-type belief + safety constraints."}
+  `;
+}
+
+// --- Main recompute ---
+function recompute(){
+  renderBars();
+  renderHistory();
+  renderCurrent();
+
+  if (state.history.length === 0){
+    renderHeat(Array(9).fill(0));
+    recMain.innerHTML = `Click a tile to begin <span class="tag">READY</span>`;
+    recKv.innerHTML = "";
+    recWhy.textContent = "Input fish tile each turn. Select spells you currently have in hand.";
+    return;
+  }
+
+  // Predict next from current
+  const cur = state.history[state.history.length-1];
+  const dist = predictNextDist(state.belief, cur);
+  renderHeat(dist);
+
+  const best = chooseBest(dist);
+  updateRecUI(best, dist);
+}
+
+// --- Add move ---
+function addMove(pos){
+  // Update belief if we have previous position
+  if (state.history.length >= 1){
+    const prev = state.history[state.history.length-1];
+    const level10Plus = !!lvl10El.checked;
+    state.belief = updateBelief(state.belief, prev, pos, level10Plus);
+  }
+  state.history.push(pos);
+
+  // Keep recent history size reasonable
+  if (state.history.length > 30) state.history.shift();
+
+  recompute();
+}
+
+// --- Undo / Reset ---
+function undoMove(){
+  if (state.history.length === 0) return;
+  state.history.pop();
+  // Rebuild belief from scratch using remaining history
+  state.belief = { ONE: 1/3, PLUS: 1/3, X: 1/3 };
+  const level10Plus = !!lvl10El.checked;
+  for (let i=1;i<state.history.length;i++){
+    state.belief = updateBelief(state.belief, state.history[i-1], state.history[i], level10Plus);
+  }
+  recompute();
+}
+function resetAll(){
+  state.history = [];
+  state.belief = { ONE: 1/3, PLUS: 1/3, X: 1/3 };
+  recompute();
+}
+
+// --- Initialize bars once ---
+renderBars();
+recompute();
 </script>
 </body>
 </html>
